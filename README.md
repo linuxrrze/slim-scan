@@ -141,13 +141,19 @@ airscan:w0:ES-580W WSD           WSD ES-580W WSD (ip=192.168.2.13)
 ./wsdscan.py --backend sane --device epsonds:net:192.168.2.13 -p auto --deskew stack.pdf
 ```
 
-- **Why:** SANE reaches USB scanners and other protocols, and its backends know model-specific features. For the ES-580W, the `epsonds` backend (part of sane-backends) offers the scanner's own skew correction (`--adf-skew`), which the scanner refuses over WSD. It also lists the scanner's own cropping (`--adf-crp`), but switches it off as soon as `scanimage` sets the scan area, which `scanimage` always does; so this tool still cuts the pages itself. `--info` shows which of the two can be used.
+- **Why:** SANE reaches USB scanners and other protocols, and its backends know model-specific features. For the ES-580W, the `epsonds` backend (part of sane-backends) offers the scanner's own skew correction (`--adf-skew`), which the scanner refuses over WSD. It also lists the scanner's own cropping (`--adf-crp`), but up to sane-backends 1.4.0 it switches that off as soon as `scanimage` sets the scan area, which `scanimage` always does; then this tool cuts the pages itself (see [epsonds with the scanner's own cropping](#epsonds-with-the-scanners-own-cropping)). `--info` shows which of the two can be used.
 - **Finding the scanner:** `--list --backend sane` shows what SANE finds (like `scanimage -L`). `epsonds` searches the network by itself; if it doesn't find your scanner, add `net 192.168.2.13` to `/etc/sane.d/epsonds.conf`. Without `--device`, the only scanner SANE finds is used.
 - **Settings:** sides, color mode, resolution, scan area, brightness and contrast are mapped to the backend's options (`--info` shows how, and lists all its options). The backends name them differently, e.g. `ADF Duplex` or `Lineart`; settings the backend doesn't have are refused before scanning.
 - **The scanner's own corrections** (on by default): with `--paper auto`, a backend that can cut pages to the sheet does so; with `--deskew`, one that can straighten does so. This tool then doesn't do it again. A scanner that only crops is not asked to with `--deskew`, since straightening here needs the sheet's edges. `--no-hardware-corrections` leaves both to this tool.
 - **Further options** for the backend: `--sane-options='--adf-justification-x=center'`. Options this tool sets itself (device, source, mode, resolution, area, format, batch) are refused.
 - **Pages** arrive as JPEG (or TIFF for black & white and lossless) one by one, so the app's preview and blank-page detection work as with WSD. Cancelling stops `scanimage` like Ctrl+C.
 - `--check` is WSD-only; with SANE, use `--info`.
+
+#### epsonds with the scanner's own cropping
+
+The fix for `--adf-crp` is [sane-backends MR !919](https://gitlab.com/sane-project/backends/-/merge_requests/919) (not yet released). It also needs a second fix, proposed in its discussion: with cropping on, every page has its own size, and `epsonds` sizes its buffer from the page before. A page larger than the one before it then fails with `ring buffer full` in the backend's debug log and `Application transferred too few scanlines` from `scanimage`, and the scanner stops with the next sheet stuck in the feeder.
+
+Tested on the ES-580W with both fixes: an A6 card followed by an A4 sheet came back cut to 148 × 105 mm and 210 × 298 mm, front and back. Until a release has them, rebuild your distribution's sane-backends package with both patches, e.g. on Debian or Ubuntu with `apt source sane-backends`, `patch -p1`, `dpkg-source --commit`, `dch --local +epsonds` and `dpkg-buildpackage -b`, and install the built packages that you already have installed (`libsane1`, `libsane-common`, `sane-utils`). After that, `--info` shows the cropping as usable, and with `--paper auto` this tool uses it without further options. An update of the distribution's package replaces the rebuilt one; `--info` then shows the cropping as unavailable again, and the tool goes back to cutting the pages itself.
 
 ### Configuration file
 
