@@ -1,7 +1,7 @@
 """Fake `scanimage` (SANE) for tests.
 
 make_scanimage_bin(directory, config) writes a stand-in for the parts of
-scanimage that wsdscan uses: -f (device list), -A -d DEVICE (options) and a
+scanimage that slim-scan uses: -f (device list), -A -d DEVICE (options) and a
 batch scan (--batch=PATTERN --batch-print). config (JSON, in the directory):
   devices  [[name, vendor, model, type]]
   options  {device name: scanimage -A output}

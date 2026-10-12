@@ -1,7 +1,7 @@
 """Fake `ocrmypdf` and `tesseract` executables for tests.
 
 make_ocr_bin(directory, engines) writes stand-ins that implement just the
-command-line interface wsdscan uses. They log their arguments to
+command-line interface slim-scan uses. They log their arguments to
 $FAKE_OCR_LOG (one JSON list per call) and fail if $FAKE_OCR_FAIL is set.
 """
 

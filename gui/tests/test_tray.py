@@ -104,7 +104,7 @@ class TrayTest(unittest.TestCase):
 
         props = self.call("/StatusNotifierItem", "org.freedesktop.DBus.Properties", "GetAll",
                           GLib.Variant("(s)", ("org.kde.StatusNotifierItem",)), "(a{sv})")[0]
-        self.assertEqual(props["Id"], "io.github.wsdscan.ScanToPdf")
+        self.assertEqual(props["Id"], "io.github.linuxrrze.SlimScan")
         self.assertEqual(props["Menu"], "/MenuBar")
         icon.set_tooltip("Scanning: page 2")
         spin(lambda: True, 0.05)
@@ -116,7 +116,7 @@ class TrayTest(unittest.TestCase):
         revision, layout = self.call("/MenuBar", "com.canonical.dbusmenu", "GetLayout",
                                      GLib.Variant("(iias)", (0, -1, [])), "(u(ia{sv}av))")
         labels = [child[1].get("label") for child in layout[2]]
-        self.assertEqual(labels, ["Open Scan to PDF", "Scan", None, "Quit"])
+        self.assertEqual(labels, ["Open Slim Scan", "Scan", None, "Quit"])
 
         icon.set_enabled("scan", False)
         _rev, layout = self.call("/MenuBar", "com.canonical.dbusmenu", "GetLayout",

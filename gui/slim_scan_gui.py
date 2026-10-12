@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Scan to PDF: desktop app for WSD network scanners (GTK 4 + libadwaita).
+"""Slim Scan: desktop app for WSD network scanners (GTK 4 + libadwaita).
 
-Scans every sheet in the document feeder into one PDF. Uses wsdscan.py for
-the scanner protocol and shares its config file (~/.config/wsdscan/config.ini),
-so defaults set here also apply to the `wsdscan` command.
+Scans every sheet in the document feeder into one PDF. Uses slim_scan.py for
+the scanner protocol and shares its config file (~/.config/slim-scan/config.ini),
+so defaults set here also apply to the `slim-scan` command.
 """
 
 import math
@@ -12,11 +12,11 @@ import sys
 import threading
 
 HERE = os.path.dirname(os.path.realpath(__file__))
-# Installed: wsdscan.py sits next to this file (also as a link in the source
+# Installed: slim_scan.py sits next to this file (also as a link in the source
 # tree). The parent folder is only searched if needed, and last, so nothing
 # else there (e.g. in ~/.local/share) can shadow a module.
 sys.path.insert(0, HERE)
-if not os.path.exists(os.path.join(HERE, "wsdscan.py")):
+if not os.path.exists(os.path.join(HERE, "slim_scan.py")):
     sys.path.append(os.path.dirname(HERE))
 
 # On KDE Plasma, use the desktop's own (KDE) file dialogs through the portal.
@@ -32,13 +32,13 @@ try:
     gi.require_version("Graphene", "1.0")
     from gi.repository import Adw, Gdk, GdkPixbuf, Gio, GLib, GObject, Graphene, Gtk
 except (ImportError, ValueError) as e:
-    sys.exit(f"Scan to PDF needs GTK 4 and libadwaita for Python ({e}).\n"
+    sys.exit(f"Slim Scan needs GTK 4 and libadwaita for Python ({e}).\n"
              "Debian/Ubuntu: sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1\n"
              "Fedora: sudo dnf install python3-gobject gtk4 libadwaita\n"
              "Arch: sudo pacman -S python-gobject gtk4 libadwaita")
 
 import scanform  # noqa: E402
-import wsdscan  # noqa: E402
+import slim_scan  # noqa: E402
 from scanform import _  # noqa: E402
 
 MIN_ADW = (1, 5)
@@ -88,10 +88,10 @@ def run_in_thread(work, on_done, on_error):
     def target():
         try:
             result = work()
-        except wsdscan.ScanError as e:
+        except slim_scan.ScanError as e:
             in_main_thread(on_error, e)
         except Exception as e:  # unexpected: still tell the user
-            in_main_thread(on_error, wsdscan.ScanError(f"{type(e).__name__}: {e}"))
+            in_main_thread(on_error, slim_scan.ScanError(f"{type(e).__name__}: {e}"))
         else:
             in_main_thread(on_done, result)
     threading.Thread(target=target, daemon=True).start()
@@ -139,12 +139,12 @@ class ScanSettings:
         self.exposure = Adw.ExpanderRow(use_markup=False, title=_("Adjust brightness and contrast"),
                                         subtitle=_("Experimental; off = scanner default"),
                                         show_enable_switch=True)
-        self.brightness = Adw.SpinRow.new_with_range(wsdscan.EXPOSURE_RANGE[0],
-                                                     wsdscan.EXPOSURE_RANGE[1], 50)
+        self.brightness = Adw.SpinRow.new_with_range(slim_scan.EXPOSURE_RANGE[0],
+                                                     slim_scan.EXPOSURE_RANGE[1], 50)
         self.brightness.set_title(_("Brightness"))
         self.brightness.set_use_markup(False)
-        self.contrast = Adw.SpinRow.new_with_range(wsdscan.EXPOSURE_RANGE[0],
-                                                   wsdscan.EXPOSURE_RANGE[1], 50)
+        self.contrast = Adw.SpinRow.new_with_range(slim_scan.EXPOSURE_RANGE[0],
+                                                   slim_scan.EXPOSURE_RANGE[1], 50)
         self.contrast.set_title(_("Contrast"))
         self.contrast.set_use_markup(False)
         self.exposure.add_row(self.brightness)
@@ -335,8 +335,8 @@ def decode_page(data, target):
     may be missing (newer versions delegate to the glycin loaders).
     """
     try:
-        width, height = wsdscan.image_size(data)
-    except wsdscan.ScanError:
+        width, height = slim_scan.image_size(data)
+    except slim_scan.ScanError:
         return None
     if width * height > MAX_THUMBNAIL_SOURCE_PIXELS:
         return None  # a crafted header must not make GTK allocate gigabytes
@@ -364,7 +364,7 @@ def pixbuf_texture(pixbuf):
 
 class PagePaintable(GObject.Object, Gdk.Paintable):
     """A scanned page as it will be saved: the thumbnail placed with the
-    page's corrections (cut, straightened, turned), like wsdscan.page_layout
+    page's corrections (cut, straightened, turned), like slim_scan.page_layout
     does in the PDF."""
 
     def __init__(self, texture, info):
@@ -372,11 +372,11 @@ class PagePaintable(GObject.Object, Gdk.Paintable):
         self.texture, self.info = texture, info
 
     def do_get_intrinsic_aspect_ratio(self):
-        page_w, page_h, _place = wsdscan.page_layout(self.info)
+        page_w, page_h, _place = slim_scan.page_layout(self.info)
         return page_w / page_h if page_h else 0.0
 
     def do_snapshot(self, snapshot, width, height):
-        page_w, page_h, cx, cy, angle = wsdscan.page_geometry(self.info)
+        page_w, page_h, cx, cy, angle = slim_scan.page_geometry(self.info)
         if not page_w or not page_h:
             return
         scale = min(width / page_w, height / page_h)
@@ -595,8 +595,8 @@ class PageEditor(Adw.Dialog):
         pixbuf = decode_page(data, self.EDIT_HEIGHT)
         self.texture = pixbuf_texture(pixbuf) if pixbuf else None
         self.extra_turn = 0
-        self.automatic = wsdscan.manual_geometry(dict(info, manual=None))
-        self.state = wsdscan.manual_geometry(info)
+        self.automatic = slim_scan.manual_geometry(dict(info, manual=None))
+        self.state = slim_scan.manual_geometry(info)
         self.reset_pending = False
 
         self.view = CropView(self)
@@ -653,10 +653,10 @@ class PageEditor(Adw.Dialog):
 
     def turn(self):
         """Clockwise degrees the page is turned (upright, by hand, here)."""
-        return (wsdscan.page_turn(self.info) + self.extra_turn) % 360
+        return (slim_scan.page_turn(self.info) + self.extra_turn) % 360
 
     def page_angle(self):
-        """The image's turn on the page, as in wsdscan.page_geometry."""
+        """The image's turn on the page, as in slim_scan.page_geometry."""
         return self.turn() - self.state[4]
 
     def set_state(self, state, reset=False):
@@ -761,7 +761,7 @@ class PageTile(Gtk.Box):
         while child := self.corrections.get_first_child():
             self.corrections.remove(child)
         self.correction_buttons = {}
-        for name in wsdscan.corrections_done(self.info) if self.info else []:
+        for name in slim_scan.corrections_done(self.info) if self.info else []:
             button = Gtk.ToggleButton(active=self.info["use"].get(name, True),
                                       sensitive=self.editable,
                                       child=Gtk.Image(icon_name=scanform.CORRECTION_ICONS[name],
@@ -874,7 +874,7 @@ class MainWindow(Adw.ApplicationWindow):
         header.pack_start(refresh)
         menu = Gio.Menu()
         menu.append(_("Preferences"), "app.preferences")
-        menu.append(_("About Scan to PDF"), "app.about")
+        menu.append(_("About Slim Scan"), "app.about")
         menu.append(_("Quit"), "app.quit")
         header.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu,
                                        primary=True, tooltip_text=_("Main Menu")))
@@ -1038,9 +1038,9 @@ class MainWindow(Adw.ApplicationWindow):
             self.actions["scan"].set_enabled(False)
 
         def work():
-            device = wsdscan.find_device(cfg["backend"], cfg["host"] or None,
+            device = slim_scan.find_device(cfg["backend"], cfg["host"] or None,
                                          cfg["device"] or None, cfg["model"] or None)
-            return device, wsdscan.device_capabilities(device)
+            return device, slim_scan.device_capabilities(device)
 
         # Only the latest attempt counts: an older one that times out later
         # must not report "not found" over a scanner found since.
@@ -1109,7 +1109,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.scan_values(), review=self.settings.review.get_active()))
 
     def new_file_name(self):
-        self.name_row.set_text(wsdscan.render_filename(self.app.config["filename"]))
+        self.name_row.set_text(slim_scan.render_filename(self.app.config["filename"]))
 
     def set_busy(self, busy):
         # File name and folder stay editable: they are read only when saving.
@@ -1189,7 +1189,7 @@ class MainWindow(Adw.ApplicationWindow):
         document (the scan thread waits in select_pages)."""
         event, result = self.review
         self.review = None
-        result["keep"] = wsdscan.SCAN_MORE
+        result["keep"] = slim_scan.SCAN_MORE
         for tile in self.tiles:
             tile.set_review(False)  # back with the review
         self.review_bar.set_visible(False)
@@ -1206,7 +1206,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def more_failed(self, error):
         """Scanning more pages failed or was cancelled: the pages before stay."""
-        if isinstance(error, wsdscan.ScanCancelled):
+        if isinstance(error, slim_scan.ScanCancelled):
             self.toasts.add_toast(Adw.Toast(use_markup=False, title=_(
                 "Scan cancelled; the pages scanned before are kept")))
         else:
@@ -1301,13 +1301,13 @@ class MainWindow(Adw.ApplicationWindow):
             def current():
                 folder = self.folder_row.folder
                 return folder, (scanform.output_path(folder, self.name_row.get_text())
-                                or scanform.output_path(folder, wsdscan.render_filename(
+                                or scanform.output_path(folder, slim_scan.render_filename(
                                     self.app.config["filename"])))
             folder, out = call_in_main_thread(current)
             try:
                 os.makedirs(folder, exist_ok=True)
             except OSError as e:
-                raise wsdscan.ScanError(_("Cannot use the folder {folder}: {error}").format(
+                raise slim_scan.ScanError(_("Cannot use the folder {folder}: {error}").format(
                     folder=folder, error=e.strerror))
             saved["out"] = out
             return out
@@ -1319,7 +1319,7 @@ class MainWindow(Adw.ApplicationWindow):
             in_main_thread(self.more_failed, error)
 
         def work():
-            pages, complete, ocr_error = wsdscan.scan_to_file(
+            pages, complete, ocr_error = slim_scan.scan_to_file(
                 args, output_path, device=self.device, on_progress=progress,
                 should_stop=cancel.is_set, on_page_image=page_image,
                 select_pages=select_pages if review else None, on_more_failed=more_failed)
@@ -1378,7 +1378,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.review_bar.set_visible(False)
         self.set_busy(False)
         self.set_progress("")
-        if isinstance(error, wsdscan.ScanCancelled):
+        if isinstance(error, slim_scan.ScanCancelled):
             self.clear_pages()
             self.toasts.add_toast(Adw.Toast(use_markup=False, title=_("Scan discarded")
                                             if "discarded" in str(error) or "removed" in str(error)
@@ -1633,7 +1633,7 @@ class ScannerPage(Adw.NavigationPage):
     def _check_sane_options(self):
         """Mark options scanimage would not get (they are not saved)."""
         try:
-            wsdscan.parse_sane_extra(self.sane_options.get_text())
+            slim_scan.parse_sane_extra(self.sane_options.get_text())
         except ValueError as e:
             self.sane_options.add_css_class("error")
             self.sane_options.set_tooltip_text(str(e))
@@ -1648,7 +1648,7 @@ class ScannerPage(Adw.NavigationPage):
             GLib.source_remove(self._lookup_source)
             self._lookup_source = 0
         if self.sane():
-            if not wsdscan.shutil.which("scanimage"):
+            if not slim_scan.shutil.which("scanimage"):
                 self.device_row.set_subtitle(_("SANE is not installed (package sane-utils)"))
                 return
             where = ("sane", None, self.sane_row.get_text().strip() or None)
@@ -1668,8 +1668,8 @@ class ScannerPage(Adw.NavigationPage):
         token = self._lookup_token
 
         def work():
-            device = wsdscan.find_device(*where)
-            return device, wsdscan.device_capabilities(device)
+            device = slim_scan.find_device(*where)
+            return device, slim_scan.device_capabilities(device)
 
         def done(result):
             if token != self._lookup_token or self.removed:
@@ -1700,7 +1700,7 @@ class ScannerPage(Adw.NavigationPage):
                       device=self.sane_row.get_text().strip(), sane_options=sane_options,
                       model=self.kept_model,
                       outdir=self.folder.folder, filename=self.filename.get_text().strip()
-                      or wsdscan.CONFIG_DEFAULTS["filename"])
+                      or slim_scan.CONFIG_DEFAULTS["filename"])
         if self.follow_documents and values["outdir"] == scanform.documents_dir():
             values["outdir"] = ""  # keep following the Documents folder
         return values
@@ -1710,7 +1710,7 @@ class ScannerPage(Adw.NavigationPage):
         others = {n: v for n, v in self.prefs.profiles.items() if n != self.old_name}
         name = self.name_row.get_text().strip()
         try:
-            wsdscan.check_scanner_name(name)
+            slim_scan.check_scanner_name(name)
         except ValueError:
             name = ""
         return scanform.unique_scanner_name(name or _("Scanner"), others)
@@ -1787,7 +1787,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.tray_row = Adw.SwitchRow(use_markup=False, title=_("Show icon in the status bar"),
                                       active=app.gui_config["tray"])
         if app.status_bar_host_present():
-            self.tray_row.set_subtitle(_("Closing the window keeps Scan to PDF running there."))
+            self.tray_row.set_subtitle(_("Closing the window keeps Slim Scan running there."))
         else:
             self.tray_row.set_subtitle(
                 _("Your desktop shows no status bar icons right now. On GNOME, install the "
@@ -1802,11 +1802,11 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self._sync_background()
 
         cli = Adw.PreferencesGroup(
-            description=_("The scanners and their settings are shared with the wsdscan "
+            description=_("The scanners and their settings are shared with the slim-scan "
                           "command (--scanner NAME)."))
         # The path goes into a row: rows show plain text, group descriptions may not.
         cli.add(Adw.ActionRow(use_markup=False, title=_("Settings file"),
-                              subtitle=scanform.display_path(wsdscan.config_path()),
+                              subtitle=scanform.display_path(slim_scan.config_path()),
                               css_classes=["property"]))
 
         for group in (self.scanners_group, self.found, behavior, background, cli):
@@ -1958,8 +1958,8 @@ class ScanApp(Adw.Application):
         GLib.set_application_name(_(scanform.APP_NAME))
         self.add_main_option("background", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE,
                              _("Start in the status bar without opening the window"), None)
-        self.config = dict(wsdscan.CONFIG_DEFAULTS)         # effective: [scan] + scanner
-        self.shared_config = dict(wsdscan.CONFIG_DEFAULTS)  # [scan] only
+        self.config = dict(slim_scan.CONFIG_DEFAULTS)         # effective: [scan] + scanner
+        self.shared_config = dict(slim_scan.CONFIG_DEFAULTS)  # [scan] only
         self.scanners = {}                                  # [scanner NAME] profiles
         self.gui_config = dict(scanform.GUI_DEFAULTS)
         self.window = None
@@ -1993,7 +1993,7 @@ class ScanApp(Adw.Application):
         self.ocr = scanform.OcrStatus.detect()
         try:
             self.load_settings()
-        except wsdscan.ScanError as e:
+        except slim_scan.ScanError as e:
             self.config_error = e  # broken config file: start with defaults, explain
         if self.gui_config["tray"]:
             self.set_tray(True)
@@ -2126,15 +2126,15 @@ class ScanApp(Adw.Application):
         """Read the config file: shared defaults, scanners, and the effective
         settings of the scanner used last in the app (else the default one)."""
         self.gui_config = scanform.load_gui_config()
-        self.shared_config = wsdscan.load_config(apply_profile=False)
-        self.scanners = wsdscan.load_scanners()
+        self.shared_config = slim_scan.load_config(apply_profile=False)
+        self.scanners = slim_scan.load_scanners()
         last = self.gui_config["last_scanner"]
-        self.config = wsdscan.load_config(scanner=last if last in self.scanners else None)
+        self.config = slim_scan.load_config(scanner=last if last in self.scanners else None)
 
     def select_scanner(self, name):
         try:
-            self.config = wsdscan.load_config(scanner=name)
-        except wsdscan.ScanError as e:
+            self.config = slim_scan.load_config(scanner=name)
+        except slim_scan.ScanError as e:
             if self.window:
                 self.window.show_error(str(e))
             return
@@ -2155,13 +2155,13 @@ class ScanApp(Adw.Application):
         self.save_config({}, {}, scanners=scanners)
 
     def save_config(self, values, gui, scanners=None):
-        wsdscan.save_config(values, sections={"gui": gui}, scanners=scanners)
+        slim_scan.save_config(values, sections={"gui": gui}, scanners=scanners)
         self.load_settings()
 
     def save_gui(self, gui):
         try:
-            wsdscan.save_config({}, sections={"gui": gui})
-        except (ValueError, OSError, wsdscan.ScanError):
+            slim_scan.save_config({}, sections={"gui": gui})
+        except (ValueError, OSError, slim_scan.ScanError):
             pass  # window size is not worth an error
 
     def on_preferences(self, *_args):
@@ -2171,7 +2171,7 @@ class ScanApp(Adw.Application):
     def on_about(self, *_args):
         about = Adw.AboutDialog(
             application_name=_(scanform.APP_NAME), application_icon=scanform.APP_ID,
-            version=scanform.VERSION, developer_name="wsdscan",
+            version=scanform.VERSION, developer_name="slim-scan",
             comments=_("Scan documents from WSD network scanners into PDF files."),
             license_type=Gtk.License.AGPL_3_0)
         about.present(self.window)
@@ -2194,7 +2194,7 @@ class ScanApp(Adw.Application):
 def check_versions():
     version = (Adw.get_major_version(), Adw.get_minor_version())
     if version < MIN_ADW:
-        sys.exit(f"Scan to PDF needs libadwaita {MIN_ADW[0]}.{MIN_ADW[1]} or newer "
+        sys.exit(f"Slim Scan needs libadwaita {MIN_ADW[0]}.{MIN_ADW[1]} or newer "
                  f"(found {version[0]}.{version[1]}).")
 
 

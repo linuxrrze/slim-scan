@@ -19,7 +19,7 @@ GUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, GUI)
 import i18n  # noqa: E402
 
-SOURCES = ["wsdscan_gui.py", "scanform.py", "tray.py"]
+SOURCES = ["slim_scan_gui.py", "scanform.py", "tray.py"]
 PLURAL_FORMS = {"de": "nplurals=2; plural=(n != 1);", "fr": "nplurals=2; plural=(n > 1);"}
 
 
@@ -66,7 +66,7 @@ def quote(text):
 
 
 def render(language, header, entries):
-    lines = [f"# Scan to PDF: translation ({language}).", "#", 'msgid ""', 'msgstr ""']
+    lines = [f"# Slim Scan: translation ({language}).", "#", 'msgid ""', 'msgstr ""']
     lines += [quote(f"{line}\n") for line in header.splitlines() if line]
     for (context, msgid, plural), (locations, msgstr, fuzzy) in entries.items():
         lines.append("")

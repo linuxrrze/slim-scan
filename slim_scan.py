@@ -800,11 +800,11 @@ def scan_ticket(source, mode, resolution, paper, caps, lossless=False,
     try:
         user = getpass.getuser()
     except Exception:
-        user = "wsdscan"
+        user = "slim-scan"
     return (
         "<wscn:ScanTicket>"
         "<wscn:JobDescription>"
-        "<wscn:JobName>wsdscan</wscn:JobName>"
+        "<wscn:JobName>slim-scan</wscn:JobName>"
         f"<wscn:JobOriginatingUserName>{escape(user)}</wscn:JobOriginatingUserName>"
         "</wscn:JobDescription>"
         "<wscn:DocumentParameters>"
@@ -1403,7 +1403,7 @@ def _stop_scanimage(proc):
 def scan_sane(device, args, caps, on_page=None, should_stop=None):
     """Run one feeder scan with scanimage; like scan()."""
     fmt, ext = ("tiff", "tif") if uses_tiff(args.mode, args.lossless) else ("jpeg", "jpg")
-    with tempfile.TemporaryDirectory(prefix="wsdscan-sane-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="slim-scan-sane-") as tmp:
         cmd = [scanimage_path()] + sane_command(device, args, caps,
                                                 os.path.join(tmp, f"page%04d.{ext}"), fmt)
         log("+ " + " ".join(cmd))
@@ -2375,7 +2375,7 @@ def detect_rotation(image, dpi, tesseract=None):
     tesseract = tesseract or shutil.which("tesseract")
     if not tesseract:
         return 0
-    with tempfile.TemporaryDirectory(prefix="wsdscan-osd-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="slim-scan-osd-") as tmp:
         name = os.path.join(tmp, "page." + ("tif" if image_kind(image) == "tiff" else "jpg"))
         with open(name, "wb") as f:
             f.write(image)
@@ -2716,7 +2716,7 @@ def write_file(path, data, overwrite=False):
     exists in any form, including a dangling symlink planted by someone else.
     """
     directory = os.path.dirname(os.path.abspath(path)) or "."
-    tmp = os.path.join(directory, f".wsdscan-{secrets.token_hex(8)}.part")
+    tmp = os.path.join(directory, f".slim-scan-{secrets.token_hex(8)}.part")
     try:
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
                      0o666)
@@ -2932,7 +2932,7 @@ def run_ocr(engine, path, pdf_path, images, dpi, lang, on_page=None, pages=None)
     pages: analyze_page() results, so Tesseract's text follows the page
     corrections (OCRmyPDF reads the already corrected PDF).
     """
-    with tempfile.TemporaryDirectory(prefix="wsdscan-ocr-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="slim-scan-ocr-") as tmp:
         result_pdf = os.path.join(tmp, "out.pdf")
         if engine == "ocrmypdf":
             # Plain PDF output keeps the scanned images untouched (no PDF/A conversion).
@@ -3018,17 +3018,17 @@ CONFIG_CHOICES = {
     "crop": CROP_CHOICES,
     "backend": BACKENDS,
 }
-CONFIG_HEADER = ("# wsdscan settings, shared by the wsdscan command and the Scan to PDF app.\n"
+CONFIG_HEADER = ("# slim-scan settings, shared by the slim-scan command and the Slim Scan app.\n"
                  "# [scan] holds the defaults, [scanner NAME] sections configure scanners\n"
                  "# (host/model and optional own defaults). Command-line options and\n"
-                 "# WSDSCAN_SCANNER / WSDSCAN_HOST / WSDSCAN_MODEL override them.\n")
+                 "# SLIM_SCAN_SCANNER / SLIM_SCAN_HOST / SLIM_SCAN_MODEL override them.\n")
 
 
 def config_path():
-    if os.environ.get("WSDSCAN_CONFIG"):
-        return os.environ["WSDSCAN_CONFIG"]
+    if os.environ.get("SLIM_SCAN_CONFIG"):
+        return os.environ["SLIM_SCAN_CONFIG"]
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
-    return os.path.join(base, "wsdscan", "config.ini")
+    return os.path.join(base, "slim-scan", "config.ini")
 
 
 def parse_config_value(key, text):
@@ -3254,7 +3254,7 @@ def exposure_value(text):
 def parse_args(argv=None):
     # The scanner profile decides the other defaults, so read it first.
     pre = argparse.ArgumentParser(add_help=False)
-    pre.add_argument("--scanner", default=os.environ.get("WSDSCAN_SCANNER") or None)
+    pre.add_argument("--scanner", default=os.environ.get("SLIM_SCAN_SCANNER") or None)
     requested = pre.parse_known_args(argv)[0].scanner
     cfg = load_config(scanner=requested)
     p = argparse.ArgumentParser(
@@ -3267,15 +3267,15 @@ def parse_args(argv=None):
                         f"currently {cfg['filename']})")
     p.add_argument("--scanner", default=requested, metavar="NAME",
                    help="use the [scanner NAME] profile from the config file "
-                        f"(default: $WSDSCAN_SCANNER or config; currently "
+                        f"(default: $SLIM_SCAN_SCANNER or config; currently "
                         f"{cfg['scanner'] or 'none'})")
     p.add_argument("--host",
-                   default=os.environ.get("WSDSCAN_HOST") or cfg["host"] or None,
-                   help="scanner IP or hostname (default: $WSDSCAN_HOST or config, "
+                   default=os.environ.get("SLIM_SCAN_HOST") or cfg["host"] or None,
+                   help="scanner IP or hostname (default: $SLIM_SCAN_HOST or config, "
                         "else multicast discovery)")
-    p.add_argument("--model", default=os.environ.get("WSDSCAN_MODEL") or cfg["model"] or None,
+    p.add_argument("--model", default=os.environ.get("SLIM_SCAN_MODEL") or cfg["model"] or None,
                    help="only use a scanner whose manufacturer/model contains this text, "
-                        "e.g. ES-580W (case-insensitive; default: $WSDSCAN_MODEL or config)")
+                        "e.g. ES-580W (case-insensitive; default: $SLIM_SCAN_MODEL or config)")
     p.add_argument("--backend", choices=BACKENDS, default=cfg["backend"],
                    help="how to reach the scanner: wsd (network, built in) or sane (SANE's "
                         "scanimage, e.g. for USB scanners or the scanner's own straightening) "

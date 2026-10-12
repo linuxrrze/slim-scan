@@ -18,8 +18,8 @@ GUI = os.path.dirname(HERE)
 ROOT = os.path.dirname(GUI)
 sys.path[:0] = [GUI, ROOT, os.path.join(ROOT, "tests")]
 os.environ["LANGUAGE"] = "C"  # English texts, whatever the desktop language
-CONFIG_DIR = tempfile.mkdtemp(prefix="wsdscan-gtk-test-")
-os.environ["WSDSCAN_CONFIG"] = os.path.join(CONFIG_DIR, "config.ini")
+CONFIG_DIR = tempfile.mkdtemp(prefix="slim-scan-gtk-test-")
+os.environ["SLIM_SCAN_CONFIG"] = os.path.join(CONFIG_DIR, "config.ini")
 
 try:
     import gi
@@ -34,10 +34,10 @@ except (ImportError, ValueError):
     GTK_OK = False
 
 if GTK_OK:
-    import wsdscan_gui
+    import slim_scan_gui
 
 import scanform  # noqa: E402
-import wsdscan  # noqa: E402
+import slim_scan  # noqa: E402
 from fake_wsd import FakeScanner, make_jpeg, scanned_sheet, test_page  # noqa: E402
 
 
@@ -63,12 +63,12 @@ class GtkTest(unittest.TestCase):
     def setUp(self):
         # Every test starts with an empty config file: scanners saved by one
         # test must not leak into the next.
-        if os.path.exists(os.environ["WSDSCAN_CONFIG"]):
-            os.remove(os.environ["WSDSCAN_CONFIG"])
+        if os.path.exists(os.environ["SLIM_SCAN_CONFIG"]):
+            os.remove(os.environ["SLIM_SCAN_CONFIG"])
 
     def test_scan_settings_rows(self):
         Adw.init()
-        settings = wsdscan_gui.ScanSettings(dict(wsdscan.CONFIG_DEFAULTS),
+        settings = slim_scan_gui.ScanSettings(dict(slim_scan.CONFIG_DEFAULTS),
                                             scanform.Choices.unknown(),
                                             scanform.OcrStatus(["tesseract"], ["eng"]))
         settings.apply_choices(scanform.Choices.from_capabilities({
@@ -95,8 +95,8 @@ class GtkTest(unittest.TestCase):
 
     def test_open_file_only_for_saved_files(self):
         from unittest import mock
-        app = wsdscan_gui.ScanApp()
-        with mock.patch.object(wsdscan_gui.Gtk, "FileLauncher") as launcher:
+        app = slim_scan_gui.ScanApp()
+        with mock.patch.object(slim_scan_gui.Gtk, "FileLauncher") as launcher:
             app.open_file("/etc/passwd")  # e.g. via D-Bus from another program
             launcher.assert_not_called()
             app.saved_files.add("/home/x/Scan.pdf")
@@ -105,16 +105,16 @@ class GtkTest(unittest.TestCase):
 
     def test_thumbnail_of_crafted_image(self):
         from fake_wsd import JPEG_RGB
-        self.assertIsNotNone(wsdscan_gui.make_thumbnail(JPEG_RGB))
+        self.assertIsNotNone(slim_scan_gui.make_thumbnail(JPEG_RGB))
         bad = bytearray(JPEG_RGB)
         sof = bad.index(b"\xff\xc0")
         bad[sof + 5:sof + 9] = (40000).to_bytes(2, "big") * 2  # claims 40000 x 40000
-        self.assertIsNone(wsdscan_gui.make_thumbnail(bytes(bad)))
-        self.assertIsNone(wsdscan_gui.make_thumbnail(b"not an image"))
+        self.assertIsNone(slim_scan_gui.make_thumbnail(bytes(bad)))
+        self.assertIsNone(slim_scan_gui.make_thumbnail(b"not an image"))
 
     def test_ocr_switch_disabled_without_engines(self):
         Adw.init()
-        settings = wsdscan_gui.ScanSettings(dict(wsdscan.CONFIG_DEFAULTS, ocr=True),
+        settings = slim_scan_gui.ScanSettings(dict(slim_scan.CONFIG_DEFAULTS, ocr=True),
                                             scanform.Choices.unknown(), scanform.OcrStatus([], []))
         self.assertFalse(settings.ocr.get_sensitive())
         self.assertFalse(settings.ocr.get_active(), "configured, but not installed")
@@ -122,20 +122,20 @@ class GtkTest(unittest.TestCase):
 
     def test_ocr_languages_per_scanner(self):
         from fake_ocr import make_ocr_bin
-        bin_dir = make_ocr_bin(tempfile.mkdtemp(prefix="wsdscan-gtk-ocr-"), ["tesseract"])
+        bin_dir = make_ocr_bin(tempfile.mkdtemp(prefix="slim-scan-gtk-ocr-"), ["tesseract"])
         old_path = os.environ["PATH"]
         os.environ["PATH"] = bin_dir
         try:
-            wsdscan.save_config({"scanner": "A"}, scanners={"A": {"host": "192.0.2.1"},
+            slim_scan.save_config({"scanner": "A"}, scanners={"A": {"host": "192.0.2.1"},
                                                             "B": {"host": "192.0.2.1"}})
-            app = wsdscan_gui.ScanApp()
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
             assert window is not None
-            prefs = wsdscan_gui.PreferencesDialog(window)
+            prefs = slim_scan_gui.PreferencesDialog(window)
             prefs.present(window)
-            page = wsdscan_gui.ScannerPage(prefs, "B")
+            page = slim_scan_gui.ScannerPage(prefs, "B")
             self.assertTrue(page.ocr_rows.auto.get_active())
             self.assertFalse(page.ocr_rows.lang_rows["deu"].get_sensitive())
             page.ocr_rows.auto.set_active(False)
@@ -145,8 +145,8 @@ class GtkTest(unittest.TestCase):
             page.apply()
             prefs.close()
             wait_for(lambda: "B" in app.scanners and "ocr_lang" in app.scanners["B"])
-            self.assertEqual(wsdscan.load_config(scanner="B")["ocr_lang"], "deu")
-            self.assertEqual(wsdscan.load_config(scanner="A")["ocr_lang"], "", "per scanner")
+            self.assertEqual(slim_scan.load_config(scanner="B")["ocr_lang"], "deu")
+            self.assertEqual(slim_scan.load_config(scanner="A")["ocr_lang"], "", "per scanner")
             window.close()
         finally:
             os.environ["PATH"] = old_path
@@ -154,7 +154,7 @@ class GtkTest(unittest.TestCase):
     def test_sane_scanner(self):
         from fake_sane import EPSONDS_OPTIONS, make_scanimage_bin, read_log
         from fake_wsd import JPEG_RGB
-        work = tempfile.mkdtemp(prefix="wsdscan-gtk-sane-")
+        work = tempfile.mkdtemp(prefix="slim-scan-gtk-sane-")
         page = os.path.join(work, "page.jpg")
         with open(page, "wb") as f:
             f.write(JPEG_RGB)
@@ -165,11 +165,11 @@ class GtkTest(unittest.TestCase):
         old_path = os.environ["PATH"]
         os.environ["PATH"] = bin_dir
         try:
-            out_dir = tempfile.mkdtemp(prefix="wsdscan-gtk-out-")
-            wsdscan.save_config({"scanner": "Office", "outdir": out_dir}, scanners={
+            out_dir = tempfile.mkdtemp(prefix="slim-scan-gtk-out-")
+            slim_scan.save_config({"scanner": "Office", "outdir": out_dir}, scanners={
                 "Office": {"backend": "sane", "device": device, "paper": "auto",
                            "deskew": True}})
-            app = wsdscan_gui.ScanApp()
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
@@ -188,9 +188,9 @@ class GtkTest(unittest.TestCase):
             self.assertIn("--adf-skew=yes", scan)
             self.assertEqual(len(os.listdir(out_dir)), 1)
 
-            prefs = wsdscan_gui.PreferencesDialog(window)
+            prefs = slim_scan_gui.PreferencesDialog(window)
             prefs.present(window)
-            page_ = wsdscan_gui.ScannerPage(prefs, "Office")
+            page_ = slim_scan_gui.ScannerPage(prefs, "Office")
             self.assertEqual(page_.backend_row.get_value(), "sane")
             self.assertTrue(page_.sane_row.get_visible())
             self.assertFalse(page_.host_row.get_visible())
@@ -218,15 +218,15 @@ class GtkTest(unittest.TestCase):
     def test_scanner_page_settings_and_name(self):
         with FakeScanner(model="ES-580W", formats=["exif", "tiff-single-uncompressed"],
                          resolutions=[100, 300]) as fake:
-            wsdscan.save_config({"scanner": ""}, scanners={})
-            app = wsdscan_gui.ScanApp()
+            slim_scan.save_config({"scanner": ""}, scanners={})
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
             assert window is not None
-            prefs = wsdscan_gui.PreferencesDialog(window)
+            prefs = slim_scan_gui.PreferencesDialog(window)
             prefs.present(window)
-            page = wsdscan_gui.ScannerPage(prefs, None)  # "Add Scanner"
+            page = slim_scan_gui.ScannerPage(prefs, None)  # "Add Scanner"
             page.LOOKUP_DELAY_MS = 10
             page.host_row.set_text(fake.host)
             # The device answers: name proposed, choices narrowed to the scanner.
@@ -237,25 +237,25 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(list(prefs.profiles), ["EPSON ES-580W"])
             self.assertEqual(prefs.profiles["EPSON ES-580W"]["mode"], "bw")
             # Same device again with other settings, via Duplicate.
-            page = wsdscan_gui.ScannerPage(prefs, "EPSON ES-580W")
+            page = slim_scan_gui.ScannerPage(prefs, "EPSON ES-580W")
             prefs.push_subpage(page)
             page._duplicate()
             self.assertEqual(list(prefs.profiles), ["EPSON ES-580W", "EPSON ES-580W 2"])
             prefs.close()
             wait_for(lambda: len(app.scanners) == 2)
-            self.assertEqual(wsdscan.load_config(scanner="EPSON ES-580W 2")["mode"], "bw")
+            self.assertEqual(slim_scan.load_config(scanner="EPSON ES-580W 2")["mode"], "bw")
             window.close()
 
     def test_add_scanner_by_address(self):
         """Regression: adding by IP address was only a small unlabeled "+" icon."""
         with FakeScanner(model="ES-580W") as fake:
-            wsdscan.save_config({"scanner": ""}, scanners={})
-            app = wsdscan_gui.ScanApp()
+            slim_scan.save_config({"scanner": ""}, scanners={})
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
             assert window is not None
-            prefs = wsdscan_gui.PreferencesDialog(window)
+            prefs = slim_scan_gui.PreferencesDialog(window)
             prefs.present(window)
             self.assertEqual(prefs.add_row.get_title(), "Add Scanner by Address…")
             self.assertIs(prefs.scanner_rows[-1], prefs.add_row, "last row of the list")
@@ -273,15 +273,15 @@ class GtkTest(unittest.TestCase):
             window.close()
 
     def test_scanner_page_address_first_no_model_filter(self):
-        wsdscan.save_config({"scanner": "A"}, scanners={
+        slim_scan.save_config({"scanner": "A"}, scanners={
             "A": {"host": "192.0.2.1"}, "B": {"model": "ADS"}})
-        app = wsdscan_gui.ScanApp()
+        app = slim_scan_gui.ScanApp()
         app.register(None)
         app.activate()
         window = app.window
         assert window is not None
-        prefs = wsdscan_gui.PreferencesDialog(window)
-        page = wsdscan_gui.ScannerPage(prefs, "A")
+        prefs = slim_scan_gui.PreferencesDialog(window)
+        page = slim_scan_gui.ScannerPage(prefs, "A")
         group = page.host_row.get_parent()
         assert group is not None
         self.assertIs(group.get_first_child(), page.backend_row, "the connection first")
@@ -292,7 +292,7 @@ class GtkTest(unittest.TestCase):
         self.assertFalse(hasattr(page, "model_row"), "no model filter in the app")
         self.assertEqual(page.values()["model"], "")
         # A model filter set in the config file (for the CLI) is kept unchanged.
-        page_b = wsdscan_gui.ScannerPage(prefs, "B")
+        page_b = slim_scan_gui.ScannerPage(prefs, "B")
         self.assertEqual(page_b.values()["model"], "ADS")
         page_b.apply()
         prefs.close()
@@ -301,14 +301,14 @@ class GtkTest(unittest.TestCase):
 
     def test_typed_name_is_kept(self):
         with FakeScanner(model="ES-580W") as fake:
-            wsdscan.save_config({"scanner": ""}, scanners={})
-            app = wsdscan_gui.ScanApp()
+            slim_scan.save_config({"scanner": ""}, scanners={})
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
             assert window is not None
-            prefs = wsdscan_gui.PreferencesDialog(window)
-            page = wsdscan_gui.ScannerPage(prefs, None)
+            prefs = slim_scan_gui.PreferencesDialog(window)
+            page = slim_scan_gui.ScannerPage(prefs, None)
             page.LOOKUP_DELAY_MS = 10
             page.name_row.set_text("Office")
             page.host_row.set_text(fake.host)
@@ -320,9 +320,9 @@ class GtkTest(unittest.TestCase):
         with FakeScanner(model="ES-580W") as office, \
                 FakeScanner(model="ADS-1700W", manufacturer="Brother",
                             formats=["jfif", "tiff-single-uncompressed"]) as home:  # b/w needs TIFF
-            wsdscan.save_config({"scanner": "Office"}, scanners={
+            slim_scan.save_config({"scanner": "Office"}, scanners={
                 "Office": {"host": office.host}, "Home": {"host": home.host, "mode": "bw"}})
-            app = wsdscan_gui.ScanApp()
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
@@ -341,17 +341,17 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(scanform.load_gui_config()["last_scanner"], "Home")
             window.close()
         # Next start: the scanner used last.
-        self.assertEqual(wsdscan.load_config(scanner=scanform.load_gui_config()["last_scanner"])
+        self.assertEqual(slim_scan.load_config(scanner=scanform.load_gui_config()["last_scanner"])
                          ["mode"], "bw")
 
     def test_preferences_scanner_list(self):
-        wsdscan.save_config({"host": "192.0.2.7", "scanner": ""}, scanners={})
-        app = wsdscan_gui.ScanApp()
+        slim_scan.save_config({"host": "192.0.2.7", "scanner": ""}, scanners={})
+        app = slim_scan_gui.ScanApp()
         app.register(None)
         app.activate()
         window = app.window
         assert window is not None
-        prefs = wsdscan_gui.PreferencesDialog(window)
+        prefs = slim_scan_gui.PreferencesDialog(window)
         prefs.present(window)
         self.assertEqual(list(prefs.profiles), ["Scanner"])
         self.assertEqual(prefs.profiles["Scanner"]["host"], "192.0.2.7")
@@ -362,15 +362,15 @@ class GtkTest(unittest.TestCase):
         prefs.default_name = "Brother ADS-1700W"
         prefs.close()
         wait_for(lambda: list(app.scanners) == ["Scanner", "Brother ADS-1700W"])
-        shared = wsdscan.load_config(apply_profile=False)
+        shared = slim_scan.load_config(apply_profile=False)
         self.assertEqual((shared["host"], shared["scanner"]), ("", "Brother ADS-1700W"))
         window.close()
 
     def test_scan_settings_dialog(self):
         with FakeScanner(model="ES-580W", formats=["exif", "tiff-single-uncompressed"],
                          resolutions=[100, 300]) as fake:
-            wsdscan.save_config({"host": fake.host})
-            app = wsdscan_gui.ScanApp()
+            slim_scan.save_config({"host": fake.host})
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
@@ -379,7 +379,7 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(window.settings_row.get_subtitle(), "Both sides · Color · 300 dpi · A4")
             self.assertIsNone(window.settings.mode.get_parent(), "rows only live in the dialog")
             for _round in range(2):  # the dialog can be opened again
-                dialog = wsdscan_gui.ScanSettingsDialog(window)
+                dialog = slim_scan_gui.ScanSettingsDialog(window)
                 dialog.present(window)
                 self.assertIsNotNone(window.settings.mode.get_parent())
                 window.settings.mode.set_value("bw")
@@ -389,17 +389,17 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(window.settings_row.get_subtitle(),
                              "Both sides · Black & white · 100 dpi · A4")
             self.assertEqual(app.config["mode"], "color", "not saved as default")
-            dialog = wsdscan_gui.ScanSettingsDialog(window)
+            dialog = slim_scan_gui.ScanSettingsDialog(window)
             dialog.present(window)
             dialog._save_defaults()
-            self.assertEqual(wsdscan.load_config()["mode"], "bw")
+            self.assertEqual(slim_scan.load_config()["mode"], "bw")
             dialog.close()
             window.close()
 
     def start_app(self, fake, **config):
-        out_dir = tempfile.mkdtemp(prefix="wsdscan-gtk-out-")
-        wsdscan.save_config(dict({"host": fake.host, "outdir": out_dir}, **config))
-        app = wsdscan_gui.ScanApp()
+        out_dir = tempfile.mkdtemp(prefix="slim-scan-gtk-out-")
+        slim_scan.save_config(dict({"host": fake.host, "outdir": out_dir}, **config))
+        app = slim_scan_gui.ScanApp()
         app.register(None)
         app.activate()
         window = app.window
@@ -527,7 +527,7 @@ class GtkTest(unittest.TestCase):
             self.assertLessEqual(editor.get_child().measure(Gtk.Orientation.HORIZONTAL, -1)[0],
                                  360)
             self.assertAlmostEqual(editor.angle.get_value(), 3.5, delta=0.05, msg="prefilled")
-            self.assertEqual(editor.state, wsdscan.manual_geometry(tile.info))
+            self.assertEqual(editor.state, slim_scan.manual_geometry(tile.info))
             # The red frame's right edge is where the page ends, and can be grabbed.
             x0, y0, x1, y1 = view.view_box()
             self.assertEqual(view.hit(x1, (y0 + y1) / 2), "r")
@@ -566,7 +566,7 @@ class GtkTest(unittest.TestCase):
             last = tile.open_editor()
             last.angle.set_value(-2.0)
             last.apply()
-            page_w, page_h = wsdscan.page_layout(tile.info)[:2]
+            page_w, page_h = slim_scan.page_layout(tile.info)[:2]
             window.finish_review(True)
             wait_for(lambda: window.cancel_event is None)
             self.assertIsNone(tile.open_editor(), "saved: no longer editable")
@@ -620,13 +620,13 @@ class GtkTest(unittest.TestCase):
 
     def test_turn_upright_needs_orientation_data(self):
         Adw.init()
-        values = dict(wsdscan.CONFIG_DEFAULTS, auto_rotate=True)
-        without = wsdscan_gui.ScanSettings(values, scanform.Choices.unknown(),
+        values = dict(slim_scan.CONFIG_DEFAULTS, auto_rotate=True)
+        without = slim_scan_gui.ScanSettings(values, scanform.Choices.unknown(),
                                            scanform.OcrStatus(["tesseract"], ["eng"], osd=False))
         self.assertFalse(without.auto_rotate.get_sensitive())
         self.assertFalse(without.values()["auto_rotate"])
         self.assertIn("tesseract-ocr-osd", without.auto_rotate.get_subtitle())
-        with_osd = wsdscan_gui.ScanSettings(values, scanform.Choices.unknown(),
+        with_osd = slim_scan_gui.ScanSettings(values, scanform.Choices.unknown(),
                                             scanform.OcrStatus(["tesseract"], ["eng"], osd=True))
         self.assertTrue(with_osd.auto_rotate.get_sensitive())
         self.assertTrue(with_osd.values()["auto_rotate"])
@@ -642,7 +642,7 @@ class GtkTest(unittest.TestCase):
             self.assertTrue(window.name_row.is_sensitive())
             self.assertTrue(window.folder_row.is_sensitive())
             self.assertFalse(window.settings_row.is_sensitive(), "scan settings stay locked")
-            other = tempfile.mkdtemp(prefix="wsdscan-gtk-other-")
+            other = tempfile.mkdtemp(prefix="slim-scan-gtk-other-")
             new_folder = os.path.join(other, "Invoices")  # created when saving
             window.name_row.set_text("ACME invoice")
             window.folder_row.set_folder(new_folder)
@@ -714,8 +714,8 @@ class GtkTest(unittest.TestCase):
             closed.start()
             unreachable = closed.host
             closed.stop()
-            wsdscan.save_config({"host": unreachable})
-            app = wsdscan_gui.ScanApp()
+            slim_scan.save_config({"host": unreachable})
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
@@ -723,7 +723,7 @@ class GtkTest(unittest.TestCase):
             wait_for(lambda: window.banner.get_revealed())
             self.assertIsNone(window.device)
 
-            prefs = wsdscan_gui.PreferencesDialog(window)
+            prefs = slim_scan_gui.PreferencesDialog(window)
             prefs.present(window)
             # The old [scan] host became the first scanner; point it at the fake.
             name = next(iter(prefs.profiles))
@@ -741,23 +741,23 @@ class GtkTest(unittest.TestCase):
         import threading
         from unittest import mock
         with FakeScanner(model="ES-580W") as fake:
-            wsdscan.save_config({"host": fake.host})
-            real_find = wsdscan.find_scanner
+            slim_scan.save_config({"host": fake.host})
+            real_find = slim_scan.find_scanner
             calls = []
             release = threading.Event()
 
             def find(host, model=None):
                 calls.append(host)
                 if len(calls) == 1:
-                    raise wsdscan.ScanError("no WSD scanner answered")
+                    raise slim_scan.ScanError("no WSD scanner answered")
                 if len(calls) == 3:
                     release.wait(10)  # a slow attempt that fails after a newer one
-                    raise wsdscan.ScanError("timed out")
+                    raise slim_scan.ScanError("timed out")
                 return real_find(host, model)
 
-            with mock.patch.object(wsdscan, "find_scanner", find), \
-                    mock.patch.object(wsdscan_gui.MainWindow, "RETRY_SECONDS", 1):
-                app = wsdscan_gui.ScanApp()
+            with mock.patch.object(slim_scan, "find_scanner", find), \
+                    mock.patch.object(slim_scan_gui.MainWindow, "RETRY_SECONDS", 1):
+                app = slim_scan_gui.ScanApp()
                 app.register(None)
                 app.activate()
                 window = app.window
@@ -786,10 +786,10 @@ class GtkTest(unittest.TestCase):
         free.bind(("127.0.0.1", 0))
         port = free.getsockname()[1]
         free.close()
-        wsdscan.save_config({"scanner": "Office"},
+        slim_scan.save_config({"scanner": "Office"},
                             scanners={"Office": {"host": f"127.0.0.1:{port}"}})
-        with mock.patch.object(wsdscan_gui.MainWindow, "RETRY_SECONDS", 1):
-            app = wsdscan_gui.ScanApp()
+        with mock.patch.object(slim_scan_gui.MainWindow, "RETRY_SECONDS", 1):
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
@@ -805,9 +805,9 @@ class GtkTest(unittest.TestCase):
 
     def test_not_set_up_and_not_reachable_differ(self):
         from unittest import mock
-        not_found = wsdscan.ScannerNotFound("no WSD scanner answered")
-        with mock.patch.object(wsdscan, "find_scanner", side_effect=not_found):
-            app = wsdscan_gui.ScanApp()
+        not_found = slim_scan.ScannerNotFound("no WSD scanner answered")
+        with mock.patch.object(slim_scan, "find_scanner", side_effect=not_found):
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window
@@ -817,7 +817,7 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(window.banner.get_button_label(), "Add Scanner")
             self.assertEqual(window.banner.get_action_name(), "app.preferences")
 
-            wsdscan.save_config({"scanner": "Office"}, scanners={"Office": {"host": "192.0.2.1"}})
+            slim_scan.save_config({"scanner": "Office"}, scanners={"Office": {"host": "192.0.2.1"}})
             app.select_scanner("Office")
             wait_for(lambda: window.title.get_subtitle() == "Scanner not reachable")
             self.assertEqual(window.scanner_row.get_title(), "Office")
@@ -831,7 +831,7 @@ class GtkTest(unittest.TestCase):
         hidden window opens only if the host is still missing after unlock."""
         from types import SimpleNamespace
         from unittest import mock
-        app = wsdscan_gui.ScanApp()
+        app = slim_scan_gui.ScanApp()
         app.register(None)
         app.activate()
         window = app.window
@@ -840,7 +840,7 @@ class GtkTest(unittest.TestCase):
         app.tray = SimpleNamespace(available=False)
         app.session_lock = SimpleNamespace(locked=False)
         timers = []
-        with mock.patch.object(wsdscan_gui.GLib, "timeout_add_seconds",
+        with mock.patch.object(slim_scan_gui.GLib, "timeout_add_seconds",
                                lambda _s, callback: timers.append(callback)):
             app._tray_available(False)
             app.session_lock.locked = True  # reported just after the host vanished
@@ -860,12 +860,12 @@ class GtkTest(unittest.TestCase):
         window.close()
 
     def test_window_scans_into_folder(self):
-        out_dir = tempfile.mkdtemp(prefix="wsdscan-gtk-out-")
+        out_dir = tempfile.mkdtemp(prefix="slim-scan-gtk-out-")
         with FakeScanner(model="ES-580W", formats=["exif", "tiff-single-uncompressed"],
                          resolutions=[100, 300], sheets=2) as fake:
-            wsdscan.save_config({"host": fake.host, "outdir": out_dir, "mode": "bw",
+            slim_scan.save_config({"host": fake.host, "outdir": out_dir, "mode": "bw",
                                  "filename": "Test {date}"})
-            app = wsdscan_gui.ScanApp()
+            app = slim_scan_gui.ScanApp()
             app.register(None)
             app.activate()
             window = app.window

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make the README screenshots of Scan to PDF.
+"""Make the README screenshots of Slim Scan.
 
 Drives the real app against the fake WSD scanner from tests/ (with
 document-like pages rendered by GTK) and fake OCR tools, and saves PNGs of
@@ -24,8 +24,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 GUI = os.path.dirname(HERE)
 ROOT = os.path.dirname(GUI)
 sys.path[:0] = [GUI, ROOT, os.path.join(ROOT, "tests")]
-WORK = tempfile.mkdtemp(prefix="wsdscan-screenshots-")
-os.environ["WSDSCAN_CONFIG"] = os.path.join(WORK, "config.ini")
+WORK = tempfile.mkdtemp(prefix="slim-scan-screenshots-")
+os.environ["SLIM_SCAN_CONFIG"] = os.path.join(WORK, "config.ini")
 os.environ["XDG_CONFIG_HOME"] = os.path.join(WORK, "config")
 os.environ["HOME"] = os.path.join(WORK, "home")
 SHOWN_HOST = "192.168.2.13"
@@ -221,8 +221,8 @@ def main():
     fake_wsd.make_tiff = lambda color, **kw: pages[next(served) % len(pages)]
 
     import scanform  # noqa: E402
-    import wsdscan  # noqa: E402
-    import wsdscan_gui  # noqa: E402
+    import slim_scan  # noqa: E402
+    import slim_scan_gui  # noqa: E402
 
     fake = fake_wsd.FakeScanner(model="ES-580W", service_path="/WDP/SCAN",
                                 formats=["exif", "tiff-single-uncompressed"],
@@ -232,23 +232,23 @@ def main():
     # Show the fake under a LAN address: probe the fake when that address is
     # configured, and show the address in place of 127.0.0.1 - only in the
     # displayed texts, so the app's address checks still run unchanged.
-    real_probe = wsdscan.probe
-    wsdscan.probe = lambda host, *a, **k: real_probe(
+    real_probe = slim_scan.probe
+    slim_scan.probe = lambda host, *a, **k: real_probe(
         fake.host if host == SHOWN_HOST else host, *a, **k)
     real_describe, real_label = scanform.describe_scanner, scanform.device_label
     scanform.describe_scanner = lambda *a, **k: tuple(
         text.replace("127.0.0.1", SHOWN_HOST) for text in real_describe(*a, **k))
     scanform.device_label = lambda *a, **k: real_label(*a, **k).replace("127.0.0.1", SHOWN_HOST)
     out = os.path.join(os.environ["HOME"], "Documents", "Scans")
-    profile = dict(scanform.full_profile(wsdscan.CONFIG_DEFAULTS, {"host": SHOWN_HOST}),
+    profile = dict(scanform.full_profile(slim_scan.CONFIG_DEFAULTS, {"host": SHOWN_HOST}),
                    lossless=True, ocr=True, outdir=out, filename="Invoice {date}")
-    wsdscan.save_config({"scanner": "Office"}, scanners={
+    slim_scan.save_config({"scanner": "Office"}, scanners={
         "Office": profile,
         "Office review": dict(profile, mode="gray", paper="auto", review_pages=True,
                               skip_blank=True, deskew=True, auto_rotate=True, ocr=False)},
         sections={"gui": {"width": 520, "height": 940, "last_scanner": "Office"}})
 
-    app = wsdscan_gui.ScanApp()
+    app = slim_scan_gui.ScanApp()
     app.register(None)
     app.activate()
     window = app.window
@@ -290,7 +290,7 @@ def main():
     wait(lambda: window.app.config["scanner"] == "Office" and window.device is not None)
     if window.last_toast:
         window.last_toast.dismiss()
-    prefs = wsdscan_gui.PreferencesDialog(window)
+    prefs = slim_scan_gui.PreferencesDialog(window)
     prefs.present(window)
     prefs.open_scanner("Office")
     settle(1.0)

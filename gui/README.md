@@ -1,6 +1,6 @@
-# Scan to PDF (desktop app)
+# Slim Scan (desktop app)
 
-A desktop app for GNOME, KDE Plasma and Ubuntu that scans every sheet in your network scanner's document feeder into one PDF. It's built on `wsdscan.py` and works with any scanner that supports WSD (Web Services on Devices) and has a document feeder, such as the Epson ES-580W.
+A desktop app for GNOME, KDE Plasma and Ubuntu that scans every sheet in your network scanner's document feeder into one PDF. It's built on `slim_scan.py` and works with any scanner that supports WSD (Web Services on Devices) and has a document feeder, such as the Epson ES-580W.
 
 It uses GTK 4 and libadwaita, so it looks native on GNOME and Ubuntu Desktop. On KDE Plasma it uses KDE's own file dialogs (through desktop portals) and follows the light/dark setting.
 
@@ -30,13 +30,13 @@ sudo ./install.sh --system   # for all users (/usr/local)
 
 The installer:
 - checks the dependencies and prints the right install command if something is missing
-- installs the app and the `wsdscan` command
-- adds **Scan to PDF** to the application menu (GNOME Activities, KDE launcher, Ubuntu app grid) with its icon
+- installs the app and the `slim-scan` command
+- adds **Slim Scan** to the application menu (GNOME Activities, KDE launcher, Ubuntu app grid) with its icon
 - adds AppStream metadata, so the app is described properly in GNOME Software and KDE Discover
 
 To remove it: `./install.sh --uninstall` (add `--system` if you installed with it). Your settings are kept.
 
-**Installing on another computer:** the installer needs `wsdscan.py` from the repository root. `gui/wsdscan.py` is only a link to it, so copying just the `gui` folder (with `cp -r` or `rsync -a`) leaves it behind. Build a self-contained package instead, and copy that:
+**Installing on another computer:** the installer needs `slim_scan.py` from the repository root. `gui/slim_scan.py` is only a link to it, so copying just the `gui` folder (with `cp -r` or `rsync -a`) leaves it behind. Build a self-contained package instead, and copy that:
 
 ```sh
 gui/install.sh --dist                  # creates scan-to-pdf-<version>.tar.gz
@@ -47,11 +47,11 @@ tar -xzf scan-to-pdf-<version>.tar.gz && cd scan-to-pdf-<version> && ./install.s
 ## Using it
 
 1. Put the pages in the scanner's document feeder.
-2. Open **Scan to PDF**. It connects to your scanner and shows it at the top. With several scanners configured, choose one in the **Scanner** selector; the app starts with the one used last. Without any configured, it uses the one it finds on the network.
+2. Open **Slim Scan**. It connects to your scanner and shows it at the top. With several scanners configured, choose one in the **Scanner** selector; the app starts with the one used last. Without any configured, it uses the one it finds on the network.
 3. Check the file name and folder. The **Scan settings** row shows the current settings, e.g. "Both sides · Color · 300 dpi · A4". Click it (or press Ctrl+E) to change them in a separate dialog:
    - The dialog has sides, color, resolution, paper size (including **Automatic**, with **Cut to the sheet**: **Left and right** by default, or **All sides**), lossless, brightness/contrast, **Recognize text (OCR)**, **Remove blank pages**, **Straighten pages**, **Scanner's own corrections** (only for a SANE scanner whose backend can cut or straighten pages itself; on by default), **Turn pages upright** and **Review pages before saving**. It only offers what your scanner supports.
    - Changes apply to the next scans.
-   - **Save for This Scanner** keeps them as the scanner's settings, also for `wsdscan --scanner NAME`. Without a configured scanner the button is **Save as Defaults**.
+   - **Save for This Scanner** keeps them as the scanner's settings, also for `slim-scan --scanner NAME`. Without a configured scanner the button is **Save as Defaults**.
    - **Reset to Defaults** goes back to the saved settings.
 4. Click **Scan** (or press Ctrl+Enter). Each page appears as a thumbnail under **Pages** as soon as it's scanned, with a page counter. **Cancel** (Esc) stops after the current page.
 
@@ -102,13 +102,13 @@ Otherwise it's greyed out, with a hint on how to install them. The app checks fo
 
 The switch's subtitle shows the engine and languages that will be used, e.g. "OCRmyPDF · eng+deu".
 
-By default, the app uses all installed languages, with your system language and English first. With more than 4 installed, it uses only the system language and English. To choose yourself, open the scanner's page in **Preferences**, turn off **Choose languages automatically** under Text recognition, and switch the languages on or off. This applies to that scanner, also in the `wsdscan` command. If text recognition fails, the PDF is still saved, without text, and a message explains why.
+By default, the app uses all installed languages, with your system language and English first. With more than 4 installed, it uses only the system language and English. To choose yourself, open the scanner's page in **Preferences**, turn off **Choose languages automatically** under Text recognition, and switch the languages on or off. This applies to that scanner, also in the `slim-scan` command. If text recognition fails, the PDF is still saved, without text, and a message explains why.
 
 ## Status bar and start at login
 
 In **Preferences → Status bar**:
-- **Show icon in the status bar:** Scan to PDF keeps running there when you close the window. Clicking the icon opens or hides the window. Its menu has **Open Scan to PDF**, **Scan** (scans with the current settings, without opening the window) and **Quit**. While scanning, the icon's tooltip shows the progress. When a scan finishes in the background, a notification appears; click it to open the PDF.
-- **Start at login:** starts Scan to PDF hidden in the status bar when you log in. It creates the standard autostart entry `~/.config/autostart/io.github.wsdscan.ScanToPdf.desktop` (uninstalling removes it). If no status bar is available at login, the window opens instead, so the app is never invisible. While the screen is locked (GNOME turns off the AppIndicator extension then), it waits until you unlock.
+- **Show icon in the status bar:** Slim Scan keeps running there when you close the window. Clicking the icon opens or hides the window. Its menu has **Open Slim Scan**, **Scan** (scans with the current settings, without opening the window) and **Quit**. While scanning, the icon's tooltip shows the progress. When a scan finishes in the background, a notification appears; click it to open the PDF.
+- **Start at login:** starts Slim Scan hidden in the status bar when you log in. It creates the standard autostart entry `~/.config/autostart/io.github.linuxrrze.SlimScan.desktop` (uninstalling removes it). If no status bar is available at login, the window opens instead, so the app is never invisible. While the screen is locked (GNOME turns off the AppIndicator extension then), it waits until you unlock.
 
 To quit while the icon is shown, use **Quit** in the icon's menu or the main menu, or Ctrl+Q.
 
@@ -120,7 +120,7 @@ To quit while the icon is shown, use **Quit** in the icon's menu or the main men
 
 The icon uses the StatusNotifierItem D-Bus protocol directly, so it needs no extra library.
 
-`wsdscan-gui --background` starts the app in the status bar by hand.
+`slim-scan-gui --background` starts the app in the status bar by hand.
 
 ## Settings
 
@@ -146,13 +146,13 @@ Every scanner has **its own settings**. Different scanners can be set up differe
 - **Saving:** folder, file-name template (`{date}`, `{time}`).
 - **Duplicate** (a copy to configure differently) and **Remove Scanner**.
 
-With two or more scanners, the main window shows a **Scanner** selector at the top, with the same names as in the preferences. The app remembers the one used last; the `wsdscan` command uses the default scanner (or `--scanner NAME`).
+With two or more scanners, the main window shows a **Scanner** selector at the top, with the same names as in the preferences. The app remembers the one used last; the `slim-scan` command uses the default scanner (or `--scanner NAME`).
 
 Changes in the main window's **Scan settings** dialog apply until you close the app. **Save for This Scanner** keeps them as that scanner's settings.
 
-The settings live in `~/.config/wsdscan/config.ini` and are **shared with the `wsdscan` command**:
+The settings live in `~/.config/slim-scan/config.ini` and are **shared with the `slim-scan` command**:
 - `[scanner NAME]`: one section per scanner, with all its settings.
-- `[scan]`: names the default scanner. Its settings are used where no scanner is configured, e.g. by `wsdscan --host …`.
+- `[scan]`: names the default scanner. Its settings are used where no scanner is configured, e.g. by `slim-scan --host …`.
 - `[gui]`: options that only the app uses.
 
 ```ini
@@ -183,7 +183,7 @@ last_scanner = Office color
 |---|---|---|
 | `scanner` | name of a `[scanner NAME]` section | the default scanner; see below |
 | `host` | IP address or hostname, or empty | empty = find the scanner automatically |
-| `model` | text, or empty | only use scanners whose name contains it; for the `wsdscan` command (`--model`), not shown in the app (an address or host name identifies a scanner better) |
+| `model` | text, or empty | only use scanners whose name contains it; for the `slim-scan` command (`--model`), not shown in the app (an address or host name identifies a scanner better) |
 | `source` | `duplex`, `adf` | `adf` = one side |
 | `mode` | `color`, `gray`, `bw` | black & white is always lossless |
 | `resolution` | dpi, e.g. `300` | the scanner decides which values are allowed |
@@ -235,7 +235,7 @@ On KDE, the app sets `GDK_DEBUG=portals` for itself so GTK uses KDE's dialogs th
 
 ## Languages
 
-The app is in English and German. It follows your desktop language (`LANGUAGE`, else `LC_ALL`, `LC_MESSAGES` or `LANG`); to start it in another language, e.g. English on a German desktop: `LANGUAGE=en wsdscan-gui`. Messages from the scanner and from the `wsdscan` core, shown e.g. under a scanner's name when something fails, stay in English.
+The app is in English and German. It follows your desktop language (`LANGUAGE`, else `LC_ALL`, `LC_MESSAGES` or `LANG`); to start it in another language, e.g. English on a German desktop: `LANGUAGE=en slim-scan-gui`. Messages from the scanner and from the `slim-scan` core, shown e.g. under a scanner's name when something fails, stay in English.
 
 Translations are plain gettext files in `gui/po/` (`de.po`), read directly by the app, so no gettext tools or build step are needed. After changing or adding texts in the code:
 
@@ -250,14 +250,14 @@ Then translate the empty `msgstr` entries. The tests check that every catalog is
 
 ```
 gui/
-├── wsdscan_gui.py     the app (GTK 4 + libadwaita)
+├── slim_scan_gui.py     the app (GTK 4 + libadwaita)
 ├── scanform.py        GUI logic without GTK (choices per scanner, file names, settings,
 │                      status bar menu, autostart entry)
 ├── tray.py            status bar icon (StatusNotifierItem + dbusmenu over D-Bus)
 ├── i18n.py            loads the translations from po/ (no gettext tools needed)
 ├── po/                translations: de.po
 ├── install.sh         installer for users or the whole system; --dist builds a package
-├── wsdscan.py         → ../wsdscan.py (link; the installer and --dist copy the real file)
+├── slim_scan.py         → ../slim_scan.py (link; the installer and --dist copy the real file)
 ├── data/              .desktop file, AppStream metainfo, app icon, status bar icon
 ├── tools/             screenshots.py: makes the screenshots in docs/screenshots;
 │                      update_po.py: updates the translations from the code

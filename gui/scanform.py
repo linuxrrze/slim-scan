@@ -1,4 +1,4 @@
-"""Toolkit-independent logic of the Scan to PDF app.
+"""Toolkit-independent logic of the Slim Scan app.
 
 Everything here is plain Python so it can be tested without GTK: which
 choices a scanner allows, turning form values into scan arguments and the
@@ -13,15 +13,15 @@ import unicodedata
 from types import SimpleNamespace
 
 import i18n
-import wsdscan
+import slim_scan
 
 TRANSLATION = i18n.translation()
 _ = TRANSLATION.gettext
 ngettext = TRANSLATION.ngettext
 pgettext = TRANSLATION.pgettext  # for a word used in two meanings
 
-APP_ID = "io.github.wsdscan.ScanToPdf"
-APP_NAME = "Scan to PDF"
+APP_ID = "io.github.linuxrrze.SlimScan"
+APP_NAME = "Slim Scan"
 VERSION = "1.3.2"
 
 # (value, label) pairs in display order.
@@ -30,7 +30,7 @@ MODES = [("color", _("Color")), ("gray", _("Grayscale")), ("bw", _("Black & whit
 PAPERS = [("auto", _("Automatic")), ("a4", "A4"), ("a5", "A5"), ("letter", "Letter"),
           ("legal", "Legal")]
 BACKENDS = [("wsd", _("Network (WSD)")), ("sane", "SANE")]
-# Paper size "auto": which of the sheet's edges are cut (wsdscan.CROP_CHOICES).
+# Paper size "auto": which of the sheet's edges are cut (slim_scan.CROP_CHOICES).
 CROPS = [("sides", _("Left and right")), ("all", _("All sides"))]
 OCR_ENGINES = [("auto", _("Automatic")), ("ocrmypdf", "OCRmyPDF"), ("tesseract", "Tesseract")]
 DEFAULT_RESOLUTIONS = [100, 150, 200, 300, 600]
@@ -63,7 +63,7 @@ def documents_dir():
 
 
 def load_gui_config():
-    raw = wsdscan.load_config_section("gui")
+    raw = slim_scan.load_config_section("gui")
     values = dict(GUI_DEFAULTS)
     for key, default in GUI_DEFAULTS.items():
         if key not in raw:
@@ -109,13 +109,13 @@ class OcrStatus:
     def __init__(self, engines, languages, osd=False):
         self.engines = engines            # installed engine names, preferred first
         self.languages = languages        # installed Tesseract languages
-        self.default_lang = wsdscan.default_ocr_languages(languages)
+        self.default_lang = slim_scan.default_ocr_languages(languages)
         self.osd = osd                    # Tesseract can detect page orientation
 
     @classmethod
     def detect(cls):
-        return cls([name for name, _path in wsdscan.ocr_engines()],
-                   wsdscan.tesseract_languages(), wsdscan.tesseract_osd_available())
+        return cls([name for name, _path in slim_scan.ocr_engines()],
+                   slim_scan.tesseract_languages(), slim_scan.tesseract_osd_available())
 
     @property
     def available(self):
@@ -171,12 +171,12 @@ class Choices:
     @classmethod
     def from_capabilities(cls, caps):
         formats = caps.get("formats") or []
-        has_tiff = not formats or wsdscan.TIFF_FORMAT in formats
-        has_jpeg = not formats or any(f in formats for f in wsdscan.JPEG_FORMATS)
+        has_tiff = not formats or slim_scan.TIFF_FORMAT in formats
+        has_jpeg = not formats or any(f in formats for f in slim_scan.JPEG_FORMATS)
         colors = caps.get("colors") or []
 
         def offered(mode):
-            return not colors or wsdscan.COLOR_ENTRIES[mode] in colors
+            return not colors or slim_scan.COLOR_ENTRIES[mode] in colors
 
         modes = [(v, label) for v, label in MODES
                  if offered(v) and (has_tiff if v == "bw" else (has_jpeg or has_tiff))]
@@ -245,7 +245,7 @@ def settings_summary(values, review=False):
 
 # --- Scanner profiles ([scanner NAME] sections) --------------------------------
 
-SCANNER_KEYS = [key for key in wsdscan.CONFIG_DEFAULTS if key != "scanner"]
+SCANNER_KEYS = [key for key in slim_scan.CONFIG_DEFAULTS if key != "scanner"]
 
 
 def full_profile(shared, entries):
@@ -254,10 +254,10 @@ def full_profile(shared, entries):
     The connection, address, SANE device and model filter are never
     inherited: they identify the scanner.
     """
-    profile = {key: entries.get(key, shared.get(key, wsdscan.CONFIG_DEFAULTS[key]))
+    profile = {key: entries.get(key, shared.get(key, slim_scan.CONFIG_DEFAULTS[key]))
                for key in SCANNER_KEYS}
     for key in IDENTITY_KEYS:
-        profile[key] = entries.get(key, wsdscan.CONFIG_DEFAULTS[key])
+        profile[key] = entries.get(key, slim_scan.CONFIG_DEFAULTS[key])
     return profile
 
 
@@ -268,7 +268,7 @@ def device_entries(device):
     """The config entries that identify a found scanner."""
     if device.get("backend") == "sane":
         return {"backend": "sane", "device": device["name"]}
-    return {"host": wsdscan.device_address(device)}
+    return {"host": slim_scan.device_address(device)}
 
 
 def scanner_key(entries):
@@ -283,13 +283,13 @@ def find_all_scanners():
     """The scanners on the network (WSD) and the ones SANE finds (if
     installed); raises the first error if there are none."""
     found, errors = [], []
-    searches = [lambda: wsdscan.discover(None)]
-    if wsdscan.shutil.which("scanimage"):
-        searches.append(wsdscan.sane_devices)
+    searches = [lambda: slim_scan.discover(None)]
+    if slim_scan.shutil.which("scanimage"):
+        searches.append(slim_scan.sane_devices)
     for search in searches:
         try:
             found += search()
-        except wsdscan.ScanError as e:
+        except slim_scan.ScanError as e:
             errors.append(e)
     if not found and errors:
         raise errors[0]
@@ -338,14 +338,14 @@ def migrate_scanners(shared, scanners, device=None):
     if not scanners and (shared.get("host") or shared.get("model") or device
                          or shared.get("backend") == "sane"):
         entries = {k: shared[k] for k in IDENTITY_KEYS if shared.get(k)
-                   and shared[k] != wsdscan.CONFIG_DEFAULTS[k]}
+                   and shared[k] != slim_scan.CONFIG_DEFAULTS[k]}
         if device and not entries:
             entries = device_entries(device)
         name = unique_scanner_name(
             (device_name(device) if device else "") or shared.get("model") or _("Scanner"),
             scanners)
         return {name: full_profile(shared, entries)}, name, True
-    default = wsdscan.default_scanner_name(shared, scanners)
+    default = slim_scan.default_scanner_name(shared, scanners)
     return scanners, default if default in scanners else "", False
 
 
@@ -357,7 +357,7 @@ def needs_reconnect(old, new, connected):
 
 
 def scan_args(values):
-    """Form values (as stored in the config) -> arguments for wsdscan.scan_to_file."""
+    """Form values (as stored in the config) -> arguments for slim_scan.scan_to_file."""
     return SimpleNamespace(
         backend=values.get("backend") or "wsd",
         host=values.get("host") or None,
@@ -383,19 +383,19 @@ def scan_args(values):
 
 
 # Icons and tooltips of the corrections shown on a page preview.
-CORRECTION_ICONS = {"crop": "wsdscan-crop-symbolic", "skew": "wsdscan-straighten-symbolic",
-                    "rotate": "wsdscan-upright-symbolic", "manual": "wsdscan-adjust-symbolic"}
-TURN_ICONS = {-90: "wsdscan-turn-left-symbolic", 90: "wsdscan-turn-right-symbolic"}
+CORRECTION_ICONS = {"crop": "slim-scan-crop-symbolic", "skew": "slim-scan-straighten-symbolic",
+                    "rotate": "slim-scan-upright-symbolic", "manual": "slim-scan-adjust-symbolic"}
+TURN_ICONS = {-90: "slim-scan-turn-left-symbolic", 90: "slim-scan-turn-right-symbolic"}
 
 
 def correction_tooltip(name, info, dpi, applied):
     """Tooltip of a page's correction icon, e.g. 'Straightened by 3.4°'."""
     if name == "crop":
-        width, height = wsdscan.crop_size(info)
+        width, height = slim_scan.crop_size(info)
         text = _("Cut to the sheet: {w} × {h} mm").format(
             w=round(width / dpi * 25.4), h=round(height / dpi * 25.4))
     elif name == "manual":
-        width, height = wsdscan.crop_size(info)
+        width, height = slim_scan.crop_size(info)
         text = _("Adjusted by hand: {w} × {h} mm, straightened by {angle}°").format(
             w=round(width / dpi * 25.4), h=round(height / dpi * 25.4),
             angle=f"{info['manual'][4]:.1f}")
@@ -413,8 +413,8 @@ def output_path(folder, name):
     name = (name or "").strip()
     if not name or name in (".pdf", ".PDF"):
         return None
-    clean = wsdscan.render_filename(name)
-    return wsdscan.unique_path(os.path.join(os.path.expanduser(folder), clean))
+    clean = slim_scan.render_filename(name)
+    return slim_scan.unique_path(os.path.join(os.path.expanduser(folder), clean))
 
 
 def progress_text(event, pages, total=0):
@@ -447,7 +447,7 @@ def pages_summary(scanned, kept=None):
 # --- Status bar menu and autostart ---------------------------------------------
 
 TRAY_MENU = [  # (id, label, action); id 0 is the menu root
-    (1, _("Open Scan to PDF"), "open"),
+    (1, _("Open Slim Scan"), "open"),
     (2, _("Scan"), "scan"),
     (3, None, None),  # separator
     (4, _("Quit"), "quit"),
@@ -481,11 +481,11 @@ def autostart_path():
 
 def launch_command():
     """How to start the app: the installed launcher, else python + this file."""
-    launcher = shutil.which("wsdscan-gui")
+    launcher = shutil.which("slim-scan-gui")
     if launcher:
         return [launcher]
     return [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         "wsdscan_gui.py")]
+                                         "slim_scan_gui.py")]
 
 
 def desktop_exec(args):
@@ -511,7 +511,7 @@ def autostart_entry(command):
         "[Desktop Entry]",
         "Type=Application",
         f"Name={APP_NAME}",
-        "Comment=" + _("Scan to PDF in the status bar"),
+        "Comment=" + _("Slim Scan in the status bar"),
         f"Exec={desktop_exec(command + ['--background'])}",
         f"Icon={APP_ID}",
         "Terminal=false",
@@ -544,7 +544,7 @@ def device_name(device):
 
 def device_label(device):
     """'EPSON ES-580W · 192.168.2.13' (or the SANE device name)."""
-    return f"{device_name(device)} · {wsdscan.device_address(device)}"
+    return f"{device_name(device)} · {slim_scan.device_address(device)}"
 
 
 def scanner_configured(config):
@@ -565,13 +565,13 @@ def scanner_problem(error, config):
     host = config.get("host") or ""
     preferences = "app.preferences"
     if not scanner_configured(config):
-        if isinstance(error, wsdscan.ScannerChoiceNeeded):
+        if isinstance(error, slim_scan.ScannerChoiceNeeded):
             return SimpleNamespace(
                 status=_("Choose a scanner"), title=_("Several scanners found"),
                 detail=str(error),
                 banner=_("Several scanners are on the network. Choose yours in the preferences."),
                 button=_("Choose Scanner"), action=preferences, can_scan=False, retry=False)
-        if isinstance(error, wsdscan.ScannerNotFound):
+        if isinstance(error, slim_scan.ScannerNotFound):
             return SimpleNamespace(
                 status=_("No scanner set up"), title=_("No scanner set up"),
                 detail=_("SANE finds no scanner") if sane
@@ -579,7 +579,7 @@ def scanner_problem(error, config):
                 banner=_("No scanner is set up, and none was found on the network. "
                          "Add your scanner in the preferences."),
                 button=_("Add Scanner"), action=preferences, can_scan=True, retry=True)
-    elif isinstance(error, wsdscan.ScannerNotFound):
+    elif isinstance(error, slim_scan.ScannerNotFound):
         if sane:
             where = (_("Not available through SANE as {device}").format(device=config["device"])
                      if config.get("device") else _("SANE finds no scanner"))
@@ -592,7 +592,7 @@ def scanner_problem(error, config):
             banner=_("“{name}” is not reachable. Check that it is switched on and "
                      "connected; it is looked for again automatically.").format(name=name),
             button=_("Retry"), action="win.reconnect", can_scan=True, retry=True)
-    elif isinstance(error, wsdscan.ScannerChoiceNeeded):
+    elif isinstance(error, slim_scan.ScannerChoiceNeeded):
         return SimpleNamespace(
             status=_("Choose a scanner"), title=name, detail=str(error),
             banner=_("Several scanners match “{name}”. Set its address in the "
@@ -619,7 +619,7 @@ def describe_scanner(device, caps, name=""):
     """
     title = name or device_name(device)
     parts = [device_name(device)] if name and name != device_name(device) else []
-    parts.append(wsdscan.device_address(device))
+    parts.append(slim_scan.device_address(device))
     state = caps.get("state") or "?"
     parts.append(SCANNER_STATES.get(state, state))
     parts += caps.get("conditions") or []

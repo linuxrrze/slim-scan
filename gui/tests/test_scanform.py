@@ -16,11 +16,11 @@ GUI = os.path.dirname(HERE)
 ROOT = os.path.dirname(GUI)
 sys.path[:0] = [GUI, ROOT, os.path.join(ROOT, "tests")]
 os.environ["LANGUAGE"] = "C"  # English texts, whatever the desktop language
-os.environ["WSDSCAN_CONFIG"] = os.path.join(tempfile.mkdtemp(prefix="wsdscan-gui-test-"),
+os.environ["SLIM_SCAN_CONFIG"] = os.path.join(tempfile.mkdtemp(prefix="slim-scan-gui-test-"),
                                             "config.ini")
 
 import scanform  # noqa: E402
-import wsdscan  # noqa: E402
+import slim_scan  # noqa: E402
 from fake_wsd import FakeScanner  # noqa: E402
 
 # Capabilities as reported by the real ES-580W.
@@ -85,8 +85,8 @@ class ChoicesTest(unittest.TestCase):
     def test_real_capabilities_from_fake_scanner(self):
         with FakeScanner(model="ES-580W", formats=["exif", "tiff-single-uncompressed"],
                          resolutions=[100, 300]) as fake:
-            device = wsdscan.find_scanner(fake.host)
-            caps = wsdscan.get_capabilities(device["service"])
+            device = slim_scan.find_scanner(fake.host)
+            caps = slim_scan.get_capabilities(device["service"])
         c = scanform.Choices.from_capabilities(caps)
         self.assertEqual(c.resolutions, [100, 300])
         title, subtitle = scanform.describe_scanner(device, caps)
@@ -101,8 +101,8 @@ class ChoicesTest(unittest.TestCase):
 
 
 class ScannerProblemTest(unittest.TestCase):
-    NOT_FOUND = wsdscan.ScannerNotFound("no WSD scanner answered on 192.0.2.1")
-    SEVERAL = wsdscan.ScannerChoiceNeeded("2 scanners found (A; B)")
+    NOT_FOUND = slim_scan.ScannerNotFound("no WSD scanner answered on 192.0.2.1")
+    SEVERAL = slim_scan.ScannerChoiceNeeded("2 scanners found (A; B)")
 
     def problem(self, error, **config):
         return scanform.scanner_problem(error, {"scanner": "", "host": "", "model": "", **config})
@@ -134,7 +134,7 @@ class ScannerProblemTest(unittest.TestCase):
         self.assertEqual(p.status, "Choose a scanner")
         self.assertIn("Set its address", p.banner)
         self.assertFalse(p.can_scan)
-        error = wsdscan.ScanError("could not read scanner capabilities: busy")
+        error = slim_scan.ScanError("could not read scanner capabilities: busy")
         p = self.problem(error, scanner="Office", host="192.0.2.1")
         self.assertEqual((p.status, p.title, p.detail), ("Scanner error", "Office", str(error)))
         self.assertEqual(p.action, "app.preferences")
@@ -172,7 +172,7 @@ class PageCorrectionTextTest(unittest.TestCase):
                          "Turned upright by 270° (off)")
 
     def test_settings(self):
-        values = dict(wsdscan.CONFIG_DEFAULTS, paper="auto", deskew=True, auto_rotate=True)
+        values = dict(slim_scan.CONFIG_DEFAULTS, paper="auto", deskew=True, auto_rotate=True)
         self.assertEqual(scanform.settings_summary(values),
                          "Both sides · Color · 300 dpi · Automatic · straighten · turn upright")
         a = scanform.scan_args(values)
@@ -182,9 +182,9 @@ class PageCorrectionTextTest(unittest.TestCase):
                          ["Automatic", "cut on all sides"])
         self.assertEqual(scanform.settings_summary(dict(values, paper="a4")).split(" · ")[3:5],
                          ["A4", "straighten"], "only with the automatic paper size")
-        self.assertEqual([v for v, _label in scanform.CROPS], list(wsdscan.CROP_CHOICES))
+        self.assertEqual([v for v, _label in scanform.CROPS], list(slim_scan.CROP_CHOICES))
         self.assertEqual(scanform.PAPERS[0], ("auto", "Automatic"))
-        self.assertEqual(set(scanform.CORRECTION_ICONS), set(wsdscan.CORRECTIONS) | {"manual"})
+        self.assertEqual(set(scanform.CORRECTION_ICONS), set(slim_scan.CORRECTIONS) | {"manual"})
 
 
 class OcrStatusTest(unittest.TestCase):
@@ -235,7 +235,7 @@ class OcrStatusTest(unittest.TestCase):
 
 class FormTest(unittest.TestCase):
     def test_scan_args(self):
-        cfg = dict(wsdscan.CONFIG_DEFAULTS, host="192.168.2.13", mode="bw", resolution=100,
+        cfg = dict(slim_scan.CONFIG_DEFAULTS, host="192.168.2.13", mode="bw", resolution=100,
                    brightness=-200)
         a = scanform.scan_args(cfg)
         self.assertEqual((a.host, a.model, a.mode, a.resolution, a.lossless, a.brightness,
@@ -247,7 +247,7 @@ class FormTest(unittest.TestCase):
         self.assertTrue(scanform.scan_args(dict(cfg, skip_blank=True)).skip_blank)
 
     def test_settings_summary(self):
-        cfg = dict(wsdscan.CONFIG_DEFAULTS)
+        cfg = dict(slim_scan.CONFIG_DEFAULTS)
         self.assertEqual(scanform.settings_summary(cfg), "Both sides · Color · 300 dpi · A4")
         cfg.update(source="adf", mode="gray", resolution=100, paper="letter", lossless=True,
                    brightness=-200, contrast=0)
@@ -261,7 +261,7 @@ class FormTest(unittest.TestCase):
                         .endswith(" · remove blank pages · review pages"))
 
     def test_needs_reconnect(self):
-        old = dict(wsdscan.CONFIG_DEFAULTS)
+        old = dict(slim_scan.CONFIG_DEFAULTS)
         new = dict(old, host="192.168.2.13")
         self.assertTrue(scanform.needs_reconnect(old, new, connected=True), "address changed")
         self.assertTrue(scanform.needs_reconnect(old, dict(old, model="epson"), connected=True))
@@ -288,10 +288,10 @@ class FormTest(unittest.TestCase):
 
     def test_gui_config(self):
         self.assertEqual(scanform.load_gui_config(), scanform.GUI_DEFAULTS)
-        wsdscan.save_config({}, sections={"gui": {"open_after_scan": True, "width": 600}})
+        slim_scan.save_config({}, sections={"gui": {"open_after_scan": True, "width": 600}})
         cfg = scanform.load_gui_config()
         self.assertEqual((cfg["open_after_scan"], cfg["width"], cfg["notify"]), (True, 600, True))
-        os.remove(wsdscan.config_path())
+        os.remove(slim_scan.config_path())
 
     def test_display_path(self):
         with mock.patch.dict(os.environ, {"HOME": "/home/anna"}):
@@ -327,12 +327,12 @@ class ScannerProfilesTest(unittest.TestCase):
                          "Office 3")
         self.assertEqual(scanform.unique_scanner_name("  A [b]  ", {}), "A (b)")
         self.assertEqual(scanform.unique_scanner_name("", {}), "Scanner")
-        wsdscan.check_scanner_name(scanform.unique_scanner_name("x]" * 50, {}))
+        slim_scan.check_scanner_name(scanform.unique_scanner_name("x]" * 50, {}))
 
     def test_from_device(self):
         device = {"manufacturer": "EPSON", "model": "ES-580W",
                   "device_url": "http://192.168.2.13:80/WSD/DEVICE"}
-        shared = dict(wsdscan.CONFIG_DEFAULTS, mode="gray", host="ignored")
+        shared = dict(slim_scan.CONFIG_DEFAULTS, mode="gray", host="ignored")
         name, profile = scanform.scanner_from_device(device, {}, shared)
         self.assertEqual(name, "EPSON ES-580W")
         self.assertEqual((profile["host"], profile["model"], profile["mode"]),
@@ -342,7 +342,7 @@ class ScannerProfilesTest(unittest.TestCase):
                          "EPSON ES-580W 2")
 
     def test_full_profile(self):
-        shared = dict(wsdscan.CONFIG_DEFAULTS, mode="gray", host="10.0.0.1", ocr=True)
+        shared = dict(slim_scan.CONFIG_DEFAULTS, mode="gray", host="10.0.0.1", ocr=True)
         profile = scanform.full_profile(shared, {"host": "10.0.0.2", "mode": "bw"})
         self.assertEqual((profile["host"], profile["mode"], profile["ocr"], profile["model"]),
                          ("10.0.0.2", "bw", True, ""))
@@ -350,12 +350,12 @@ class ScannerProfilesTest(unittest.TestCase):
         self.assertNotIn("scanner", profile)
 
     def test_migrate_single_scanner_from_scan_section(self):
-        shared = dict(wsdscan.CONFIG_DEFAULTS, host="192.168.2.13", model="ES-580W", mode="bw")
+        shared = dict(slim_scan.CONFIG_DEFAULTS, host="192.168.2.13", model="ES-580W", mode="bw")
         scanners, default, migrated = scanform.migrate_scanners(shared, {})
         self.assertEqual((list(scanners), default, migrated), (["ES-580W"], "ES-580W", True))
         self.assertEqual((scanners["ES-580W"]["host"], scanners["ES-580W"]["mode"]),
                          ("192.168.2.13", "bw"), "keeps its settings")
-        empty = dict(wsdscan.CONFIG_DEFAULTS)
+        empty = dict(slim_scan.CONFIG_DEFAULTS)
         self.assertEqual(scanform.migrate_scanners(empty, {}), ({}, "", False))
 
     def test_migrate_names_after_connected_device(self):
@@ -363,31 +363,31 @@ class ScannerProfilesTest(unittest.TestCase):
         # while the main window showed "EPSON ES-580W".
         device = {"manufacturer": "EPSON", "model": "ES-580W",
                   "device_url": "http://192.168.2.13:80/WSD/DEVICE"}
-        shared = dict(wsdscan.CONFIG_DEFAULTS, host="192.168.2.13")
+        shared = dict(slim_scan.CONFIG_DEFAULTS, host="192.168.2.13")
         scanners, default, _m = scanform.migrate_scanners(shared, {}, device)
         self.assertEqual(default, "EPSON ES-580W")
         self.assertEqual(scanners["EPSON ES-580W"]["host"], "192.168.2.13")
         # Found automatically (no address configured): keep the found address.
-        scanners, _d, _m = scanform.migrate_scanners(dict(wsdscan.CONFIG_DEFAULTS), {}, device)
+        scanners, _d, _m = scanform.migrate_scanners(dict(slim_scan.CONFIG_DEFAULTS), {}, device)
         self.assertEqual(scanners["EPSON ES-580W"]["host"], "192.168.2.13")
 
     def test_existing_profiles_and_default(self):
         profiles = {"A": {"host": "1"}, "B": {"host": "2"}}
-        shared = dict(wsdscan.CONFIG_DEFAULTS, scanner="B")
+        shared = dict(slim_scan.CONFIG_DEFAULTS, scanner="B")
         scanners, default, migrated = scanform.migrate_scanners(shared, profiles)
         self.assertEqual((list(scanners), default, migrated), (["A", "B"], "B", False))
         self.assertEqual(scanners["B"]["host"], "2")
         self.assertEqual(set(scanners["B"]), set(scanform.SCANNER_KEYS), "complete settings")
         shared["scanner"] = "Gone"
         self.assertEqual(scanform.migrate_scanners(shared, profiles)[1], "")
-        self.assertEqual(scanform.migrate_scanners(dict(wsdscan.CONFIG_DEFAULTS), profiles)[1], "A")
+        self.assertEqual(scanform.migrate_scanners(dict(slim_scan.CONFIG_DEFAULTS), profiles)[1], "A")
 
 
 class SaneProfileTest(unittest.TestCase):
-    DEVICE = wsdscan.sane_device("epsonds:net:192.168.2.13", "Epson", "ES-580W", "ESC/I-2")
+    DEVICE = slim_scan.sane_device("epsonds:net:192.168.2.13", "Epson", "ES-580W", "ESC/I-2")
 
     def test_profile_from_found_device(self):
-        shared = dict(wsdscan.CONFIG_DEFAULTS, backend="sane", device="other:0", mode="gray")
+        shared = dict(slim_scan.CONFIG_DEFAULTS, backend="sane", device="other:0", mode="gray")
         name, values = scanform.scanner_from_device(self.DEVICE, {}, shared)
         self.assertEqual(name, "Epson ES-580W")
         self.assertEqual((values["backend"], values["device"], values["host"]),
@@ -408,7 +408,7 @@ class SaneProfileTest(unittest.TestCase):
         self.assertEqual(scanform.describe_scanner(self.DEVICE, {"state": "Idle"}, "Office"),
                          ("Office", "Epson ES-580W · epsonds:net:192.168.2.13 · Idle"))
         config = {"scanner": "Office", "backend": "sane", "device": "epsonds:net:1.2.3.4"}
-        problem = scanform.scanner_problem(wsdscan.ScannerNotFound("x"), config)
+        problem = scanform.scanner_problem(slim_scan.ScannerNotFound("x"), config)
         self.assertEqual(problem.detail,
                          "Not available through SANE as epsonds:net:1.2.3.4 · trying again")
         self.assertTrue(scanform.scanner_configured({"backend": "sane", "device": "test:0"}))
@@ -419,7 +419,7 @@ class SaneProfileTest(unittest.TestCase):
         self.assertTrue(scanform.needs_reconnect(old, dict(old, device="b:0"), True))
         self.assertTrue(scanform.needs_reconnect(old, dict(old, backend="wsd"), True))
         self.assertFalse(scanform.needs_reconnect(old, dict(old), True))
-        values = dict(wsdscan.CONFIG_DEFAULTS, backend="sane", device="a:0",
+        values = dict(slim_scan.CONFIG_DEFAULTS, backend="sane", device="a:0",
                       hardware_corrections=False, sane_options="--eject")
         a = scanform.scan_args(values)
         self.assertEqual((a.backend, a.device, a.hardware_corrections, a.sane_options),
@@ -432,13 +432,13 @@ class SaneProfileTest(unittest.TestCase):
 
     def test_find_all(self):
         sane = [self.DEVICE]
-        with mock.patch.object(wsdscan, "discover", side_effect=wsdscan.ScannerNotFound("none")), \
-                mock.patch.object(wsdscan, "sane_devices", return_value=sane), \
-                mock.patch.object(wsdscan.shutil, "which", return_value="/usr/bin/scanimage"):
+        with mock.patch.object(slim_scan, "discover", side_effect=slim_scan.ScannerNotFound("none")), \
+                mock.patch.object(slim_scan, "sane_devices", return_value=sane), \
+                mock.patch.object(slim_scan.shutil, "which", return_value="/usr/bin/scanimage"):
             self.assertEqual(scanform.find_all_scanners(), sane)
-        with mock.patch.object(wsdscan, "discover", side_effect=wsdscan.ScannerNotFound("none")), \
-                mock.patch.object(wsdscan.shutil, "which", return_value=None), \
-                self.assertRaisesRegex(wsdscan.ScannerNotFound, "none"):
+        with mock.patch.object(slim_scan, "discover", side_effect=slim_scan.ScannerNotFound("none")), \
+                mock.patch.object(slim_scan.shutil, "which", return_value=None), \
+                self.assertRaisesRegex(slim_scan.ScannerNotFound, "none"):
             scanform.find_all_scanners()
 
 
@@ -454,7 +454,7 @@ class PreviewTextTest(unittest.TestCase):
         self.assertIn("Save", scanform.progress_text("review", 4))
 
     def test_summary_mentions_review(self):
-        cfg = dict(wsdscan.CONFIG_DEFAULTS)
+        cfg = dict(slim_scan.CONFIG_DEFAULTS)
         self.assertTrue(scanform.settings_summary(cfg, review=True).endswith(" · review pages"))
         self.assertNotIn("review", scanform.settings_summary(cfg))
 
@@ -464,7 +464,7 @@ class TrayMenuTest(unittest.TestCase):
         root_id, root_props, children = scanform.tray_menu_layout({"scan": False})
         self.assertEqual((root_id, root_props), (0, {"children-display": "submenu"}))
         self.assertEqual([c[0] for c in children], [1, 2, 3, 4])
-        self.assertEqual(children[0][1], {"label": "Open Scan to PDF", "enabled": True, "visible": True})
+        self.assertEqual(children[0][1], {"label": "Open Slim Scan", "enabled": True, "visible": True})
         self.assertFalse(children[1][1]["enabled"], "Scan disabled while scanning")
         self.assertEqual(children[2][1], {"type": "separator"})
 
@@ -475,8 +475,8 @@ class TrayMenuTest(unittest.TestCase):
 
 class AutostartTest(unittest.TestCase):
     def test_desktop_exec_quoting(self):
-        self.assertEqual(scanform.desktop_exec(["/usr/bin/wsdscan-gui", "--background"]),
-                         "/usr/bin/wsdscan-gui --background")
+        self.assertEqual(scanform.desktop_exec(["/usr/bin/slim-scan-gui", "--background"]),
+                         "/usr/bin/slim-scan-gui --background")
         self.assertEqual(scanform.desktop_exec(["/usr/bin/python3", "/home/a b/x$y.py"]),
                          '/usr/bin/python3 "/home/a b/x\\\\$y.py"')  # \\$ in the key file
 
@@ -493,13 +493,13 @@ class AutostartTest(unittest.TestCase):
             path = scanform.autostart_path()
             self.assertEqual(path, os.path.join(d, "autostart", f"{scanform.APP_ID}.desktop"))
             self.assertFalse(scanform.autostart_enabled())
-            scanform.set_autostart(True, ["/opt/bin/wsdscan-gui"])
+            scanform.set_autostart(True, ["/opt/bin/slim-scan-gui"])
             self.assertTrue(scanform.autostart_enabled())
             parser = configparser.ConfigParser(interpolation=None)
             parser.optionxform = str
             parser.read(path)
             entry = parser["Desktop Entry"]
-            self.assertEqual(entry["Exec"], "/opt/bin/wsdscan-gui --background")
+            self.assertEqual(entry["Exec"], "/opt/bin/slim-scan-gui --background")
             self.assertEqual(entry["Icon"], scanform.APP_ID)
             self.assertEqual(entry["X-GNOME-Autostart-enabled"], "true")
             scanform.set_autostart(False)
@@ -507,12 +507,12 @@ class AutostartTest(unittest.TestCase):
             scanform.set_autostart(False)  # idempotent
 
     def test_launch_command(self):
-        with mock.patch("shutil.which", return_value="/usr/local/bin/wsdscan-gui"):
-            self.assertEqual(scanform.launch_command(), ["/usr/local/bin/wsdscan-gui"])
+        with mock.patch("shutil.which", return_value="/usr/local/bin/slim-scan-gui"):
+            self.assertEqual(scanform.launch_command(), ["/usr/local/bin/slim-scan-gui"])
         with mock.patch("shutil.which", return_value=None):
             cmd = scanform.launch_command()
         self.assertEqual(cmd[0], sys.executable)
-        self.assertTrue(cmd[1].endswith("wsdscan_gui.py"))
+        self.assertTrue(cmd[1].endswith("slim_scan_gui.py"))
 
 
 class DesktopFilesTest(unittest.TestCase):
@@ -529,7 +529,7 @@ class DesktopFilesTest(unittest.TestCase):
         self.assertEqual(entry["Type"], "Application")
         self.assertEqual(entry["Icon"], scanform.APP_ID)
         self.assertEqual(entry["StartupWMClass"], scanform.APP_ID)
-        self.assertEqual(entry["Exec"], "wsdscan-gui")  # the installer makes it absolute
+        self.assertEqual(entry["Exec"], "slim-scan-gui")  # the installer makes it absolute
         self.assertEqual(entry["Name"], scanform.APP_NAME)
         categories = entry["Categories"].rstrip(";").split(";")
         self.assertIn("Graphics", categories)
@@ -542,7 +542,7 @@ class DesktopFilesTest(unittest.TestCase):
         self.assertEqual(root.findtext("id"), scanform.APP_ID)
         self.assertEqual(root.findtext("launchable"), f"{scanform.APP_ID}.desktop")
         self.assertEqual(root.findtext("metadata_license"), "CC0-1.0")
-        self.assertIn("wsdscan-gui", [b.text for b in root.iter("binary")])
+        self.assertIn("slim-scan-gui", [b.text for b in root.iter("binary")])
         self.assertEqual(root.find("releases/release").get("version"), scanform.VERSION)
         self.assertIsNotNone(root.find("content_rating"))
 
@@ -565,7 +565,7 @@ class DesktopFilesTest(unittest.TestCase):
     def test_installer_copies_all_modules(self):
         with open(os.path.join(GUI, "install.sh")) as f:
             installer = f.read()
-        for name in ("wsdscan_gui.py", "scanform.py", "tray.py", "-symbolic.svg"):
+        for name in ("slim_scan_gui.py", "scanform.py", "tray.py", "-symbolic.svg"):
             self.assertGreaterEqual(installer.count(name), 2, name)  # install and --dist
 
 

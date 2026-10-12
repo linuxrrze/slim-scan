@@ -1,4 +1,4 @@
-"""Regression tests for wsdscan.py. Standard library only.
+"""Regression tests for slim_scan.py. Standard library only.
 
 Run from the repository root:  python3 -m unittest discover -s tests -v
 """
@@ -17,13 +17,13 @@ from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Never read the user's real config; subprocesses inherit this too.
-_CONFIG_DIR = tempfile.mkdtemp(prefix="wsdscan-test-")
-os.environ["WSDSCAN_CONFIG"] = os.path.join(_CONFIG_DIR, "config.ini")
-SCRIPT = os.path.join(ROOT, "wsdscan.py")
+_CONFIG_DIR = tempfile.mkdtemp(prefix="slim-scan-test-")
+os.environ["SLIM_SCAN_CONFIG"] = os.path.join(_CONFIG_DIR, "config.ini")
+SCRIPT = os.path.join(ROOT, "slim_scan.py")
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import wsdscan as tool  # noqa: E402
+import slim_scan as tool  # noqa: E402
 from fake_ocr import make_ocr_bin, read_log  # noqa: E402
 from fake_wsd import (JPEG_EXIF, JPEG_GRAY, JPEG_RGB, JPEG_SIZE,  # noqa: E402
                       FakeScanner, make_jpeg, make_tiff, pack_bw, scanned_sheet, test_page,
@@ -885,10 +885,10 @@ class ConfigTestBase(unittest.TestCase):
         self.dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.dir.cleanup)
         self.path = os.path.join(self.dir.name, "sub", "config.ini")
-        patcher = mock.patch.dict(os.environ, {"WSDSCAN_CONFIG": self.path})
+        patcher = mock.patch.dict(os.environ, {"SLIM_SCAN_CONFIG": self.path})
         patcher.start()
         self.addCleanup(patcher.stop)
-        for var in ("WSDSCAN_HOST", "WSDSCAN_MODEL", "WSDSCAN_SCANNER"):
+        for var in ("SLIM_SCAN_HOST", "SLIM_SCAN_MODEL", "SLIM_SCAN_SCANNER"):
             os.environ.pop(var, None)
 
     def write(self, text):
@@ -931,7 +931,7 @@ class ConfigTest(ConfigTestBase):
 
     def test_command_line_and_environment_override_config(self):
         self.write("[scan]\nhost = 10.0.0.1\nmode = bw\nlossless = true\nbrightness = 300\n")
-        with mock.patch.dict(os.environ, {"WSDSCAN_HOST": "10.0.0.2"}):
+        with mock.patch.dict(os.environ, {"SLIM_SCAN_HOST": "10.0.0.2"}):
             a = tool.parse_args(["-m", "gray", "--no-lossless", "--brightness", "default"])
         self.assertEqual((a.host, a.mode, a.lossless, a.brightness), ("10.0.0.2", "gray", False, None))
         self.assertEqual(tool.parse_args(["--host", "10.0.0.3"]).host, "10.0.0.3")
@@ -956,7 +956,7 @@ class ConfigTest(ConfigTestBase):
         self.assertEqual(tool.load_config_section("gui"), {"open_after_scan": "true", "notify": "false"})
         with open(self.path) as f:
             text = f.read()
-        self.assertTrue(text.startswith("# wsdscan settings"))
+        self.assertTrue(text.startswith("# slim-scan settings"))
         self.assertIn("brightness = -50", text)
         self.assertIn("contrast = default", text)
 
@@ -1001,7 +1001,7 @@ class ScannerProfileTest(ConfigTestBase):
         self.assertEqual((a.scanner, a.host, a.model, a.mode), ("Home Office", None, "ADS-1700W", "bw"))
         a = tool.parse_args(["--scanner", "Home Office", "-m", "color", "--host", "10.0.0.9"])
         self.assertEqual((a.mode, a.host), ("color", "10.0.0.9"), "command line wins")
-        with mock.patch.dict(os.environ, {"WSDSCAN_SCANNER": "Home Office"}):
+        with mock.patch.dict(os.environ, {"SLIM_SCAN_SCANNER": "Home Office"}):
             self.assertEqual(tool.parse_args([]).model, "ADS-1700W")
         self.assertEqual(tool.parse_args([]).host, "192.168.2.13")
 
@@ -1311,9 +1311,9 @@ class OcrTest(unittest.TestCase):
         self.assertNotIn("CreateScanJob", fake.actions())
 
     def run_cli(self, fake, *argv, config=None, fail=False):
-        env = dict(os.environ, WSDSCAN_CONFIG=os.path.join(self.dir.name, "config.ini"))
+        env = dict(os.environ, SLIM_SCAN_CONFIG=os.path.join(self.dir.name, "config.ini"))
         if config:
-            with open(env["WSDSCAN_CONFIG"], "w") as f:
+            with open(env["SLIM_SCAN_CONFIG"], "w") as f:
                 f.write(config)
         if fail:
             env["FAKE_OCR_FAIL"] = "1"
@@ -1354,8 +1354,8 @@ class OcrTest(unittest.TestCase):
         for text, message in (("[scan]\nocr_engine = abbyy\n", "ocr_engine: expected one of"),
                               ("[scan]\nocr_lang = Deutsch\n", "ocr_lang: expected Tesseract")):
             with self.subTest(text=text), \
-                    mock.patch.dict(os.environ, {"WSDSCAN_CONFIG": os.path.join(self.dir.name, "c.ini")}):
-                with open(os.environ["WSDSCAN_CONFIG"], "w") as f:
+                    mock.patch.dict(os.environ, {"SLIM_SCAN_CONFIG": os.path.join(self.dir.name, "c.ini")}):
+                with open(os.environ["SLIM_SCAN_CONFIG"], "w") as f:
                     f.write(text)
                 with self.assertRaisesRegex(tool.ScanError, message):
                     tool.load_config()
@@ -1417,7 +1417,7 @@ class CliBase(unittest.TestCase):
 
     def run_tool(self, fake, *argv):
         env = dict(os.environ)
-        for var in ("WSDSCAN_HOST", "WSDSCAN_MODEL", "WSDSCAN_SCANNER"):
+        for var in ("SLIM_SCAN_HOST", "SLIM_SCAN_MODEL", "SLIM_SCAN_SCANNER"):
             env.pop(var, None)
         return subprocess.run([sys.executable, SCRIPT, "--host", fake.host, *argv],
                               cwd=self.tmp.name, capture_output=True, text=True,
@@ -1596,7 +1596,7 @@ class CliTest(CliBase):
             config = os.path.join(self.tmp.name, "config.ini")
             with open(config, "w") as f:
                 f.write("[scanner Office]\nhost = 127.0.0.1\n")
-            env = dict(os.environ, WSDSCAN_CONFIG=config)
+            env = dict(os.environ, SLIM_SCAN_CONFIG=config)
             r = subprocess.run([sys.executable, SCRIPT, "--host", fake.host, "--list"],
                                capture_output=True, text=True, timeout=60, env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -1605,8 +1605,8 @@ class CliTest(CliBase):
     def test_host_and_model_from_environment(self):
         with FakeScanner(**ES580W_PROFILE) as fake:
             env = {k: v for k, v in os.environ.items()
-                   if k not in ("WSDSCAN_HOST", "WSDSCAN_MODEL")}
-            env.update({"WSDSCAN_HOST": fake.host, "WSDSCAN_MODEL": "epson"})
+                   if k not in ("SLIM_SCAN_HOST", "SLIM_SCAN_MODEL")}
+            env.update({"SLIM_SCAN_HOST": fake.host, "SLIM_SCAN_MODEL": "epson"})
             r = subprocess.run([sys.executable, SCRIPT, "--list"], cwd=self.tmp.name,
                                capture_output=True, text=True, timeout=60, env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -1614,7 +1614,7 @@ class CliTest(CliBase):
 
     def test_old_host_variable_is_ignored(self):
         with mock.patch.dict(os.environ, {"ES580W_HOST": "192.168.2.13"}):
-            os.environ.pop("WSDSCAN_HOST", None)
+            os.environ.pop("SLIM_SCAN_HOST", None)
             self.assertIsNone(tool.parse_args([]).host)
 
     def test_info(self):

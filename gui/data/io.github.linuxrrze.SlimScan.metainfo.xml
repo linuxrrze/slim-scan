@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.wsdscan.ScanToPdf</id>
+  <id>io.github.linuxrrze.SlimScan</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-or-later</project_license>
-  <name>Scan to PDF</name>
+  <name>Slim Scan</name>
   <summary>Scan documents from a network scanner into PDF files</summary>
   <summary xml:lang="de">Dokumente von einem Netzwerkscanner als PDF-Dateien scannen</summary>
   <description>
     <p>
-      Scan to PDF scans every sheet in your scanner's document feeder, one- or two-sided,
+      Slim Scan scans every sheet in your scanner's document feeder, one- or two-sided,
       and saves the pages as one PDF. It talks directly to network scanners that support
       WSD (Web Services on Devices), such as the Epson ES-580W; no scanner driver is needed.
     </p>
@@ -25,36 +25,36 @@
       <li>Status bar icon and start at login</li>
       <li>In English and German</li>
       <li>Network scanners over WSD, other scanners through SANE</li>
-      <li>Shares its settings with the wsdscan command-line tool</li>
+      <li>Shares its settings with the slim-scan command-line tool</li>
     </ul>
   </description>
   <screenshots>
     <screenshot type="default">
       <caption>After a scan, with text recognition</caption>
-      <image>https://raw.githubusercontent.com/linuxrrze/wsdscan/main/docs/screenshots/main-window.png</image>
+      <image>https://raw.githubusercontent.com/linuxrrze/slim-scan/main/docs/screenshots/main-window.png</image>
     </screenshot>
     <screenshot>
       <caption>Reviewing pages before saving</caption>
-      <image>https://raw.githubusercontent.com/linuxrrze/wsdscan/main/docs/screenshots/review-pages.png</image>
+      <image>https://raw.githubusercontent.com/linuxrrze/slim-scan/main/docs/screenshots/review-pages.png</image>
     </screenshot>
     <screenshot>
       <caption>Adjusting a page</caption>
-      <image>https://raw.githubusercontent.com/linuxrrze/wsdscan/main/docs/screenshots/page-editor.png</image>
+      <image>https://raw.githubusercontent.com/linuxrrze/slim-scan/main/docs/screenshots/page-editor.png</image>
     </screenshot>
     <screenshot>
       <caption>A scanner's settings</caption>
-      <image>https://raw.githubusercontent.com/linuxrrze/wsdscan/main/docs/screenshots/scanner-settings.png</image>
+      <image>https://raw.githubusercontent.com/linuxrrze/slim-scan/main/docs/screenshots/scanner-settings.png</image>
     </screenshot>
   </screenshots>
-  <url type="homepage">https://github.com/linuxrrze/wsdscan</url>
-  <url type="bugtracker">https://github.com/linuxrrze/wsdscan/issues</url>
-  <launchable type="desktop-id">io.github.wsdscan.ScanToPdf.desktop</launchable>
+  <url type="homepage">https://github.com/linuxrrze/slim-scan</url>
+  <url type="bugtracker">https://github.com/linuxrrze/slim-scan/issues</url>
+  <launchable type="desktop-id">io.github.linuxrrze.SlimScan.desktop</launchable>
   <provides>
-    <binary>wsdscan-gui</binary>
-    <binary>wsdscan</binary>
+    <binary>slim-scan-gui</binary>
+    <binary>slim-scan</binary>
   </provides>
-  <developer id="io.github.wsdscan">
-    <name>wsdscan</name>
+  <developer id="io.github.slim-scan">
+    <name>slim-scan</name>
   </developer>
   <categories>
     <category>Graphics</category>

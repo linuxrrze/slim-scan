@@ -143,7 +143,7 @@ class CatalogTest(unittest.TestCase):
         self.assertEqual(out, ["Beidseitig", "3 Seiten", "1 Seite"])
 
     def test_desktop_file_translated(self):
-        with open(os.path.join(GUI, "data", "io.github.wsdscan.ScanToPdf.desktop"),
+        with open(os.path.join(GUI, "data", "io.github.linuxrrze.SlimScan.desktop"),
                   encoding="utf-8") as f:
             text = f.read()
         for key in ("GenericName", "Comment", "Keywords"):

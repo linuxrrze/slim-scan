@@ -1,4 +1,4 @@
-# wsdscan
+# slim-scan
 
 Small CLI that scans from a network scanner and saves all pages from the document feeder as one PDF.
 
@@ -13,48 +13,48 @@ Only standard WSD features are used. Everything model-dependent (resolutions, co
 ## Setup
 
 ```sh
-chmod +x wsdscan.py
-export WSDSCAN_HOST=192.168.2.13     # or pass --host each time
-./wsdscan.py --info              # capabilities and status
+chmod +x slim_scan.py
+export SLIM_SCAN_HOST=192.168.2.13     # or pass --host each time
+./slim_scan.py --info              # capabilities and status
 ```
 
 ### Choosing a scanner
 
-- **`--scanner NAME`** (or `WSDSCAN_SCANNER`): use a scanner configured in the [config file](#configuration-file), e.g. `--scanner Office`. Without it, the default scanner from the config file is used.
-- **`--host <ip>`** (or `WSDSCAN_HOST`): use the scanner at that address.
+- **`--scanner NAME`** (or `SLIM_SCAN_SCANNER`): use a scanner configured in the [config file](#configuration-file), e.g. `--scanner Office`. Without it, the default scanner from the config file is used.
+- **`--host <ip>`** (or `SLIM_SCAN_HOST`): use the scanner at that address.
 - **Without a host**, the tool searches the network by multicast. If exactly one WSD scanner answers, it's used. If several answer, the tool lists them and asks you to choose with `--host` or `--model`. Multicast usually fails inside Docker containers with bridge networking, so set the host there.
-- **`--model <text>`** (or `WSDSCAN_MODEL`): only use a scanner whose manufacturer or model name contains this text, case-insensitively, e.g. `--model ES-580W` or `--model epson`. Together with `--host`, it also checks that the scanner at that address is the expected one.
+- **`--model <text>`** (or `SLIM_SCAN_MODEL`): only use a scanner whose manufacturer or model name contains this text, case-insensitively, e.g. `--model ES-580W` or `--model epson`. Together with `--host`, it also checks that the scanner at that address is the expected one.
 - **`--backend sane --device NAME`**: scan through SANE instead, see [SANE](#sane).
 - **`--list`**: show the scanners found and exit:
 
 ```sh
-./wsdscan.py --list
+./slim_scan.py --list
 192.168.2.13     EPSON ES-580W  (firmware 13.SW19PB, service http://192.168.2.13:80/WDP/SCAN)
 ```
 
 ## Usage
 
 ```sh
-./wsdscan.py                      # duplex, color, 300 dpi, A4 -> scan_<date>_<time>.pdf
-./wsdscan.py invoice.pdf          # explicit file name
-./wsdscan.py -s adf -m gray -r 100 letter.pdf
-./wsdscan.py -m bw contract.pdf   # black & white: sharp text, small files
-./wsdscan.py --lossless photo.pdf # color without JPEG compression
-./wsdscan.py --brightness 200 --contrast 100 faint.pdf
-./wsdscan.py --ocr letter.pdf         # searchable PDF (needs OCRmyPDF or Tesseract)
-./wsdscan.py --skip-blank mixed.pdf   # leave out the empty backs of one-sided pages
-./wsdscan.py -p auto --deskew --auto-rotate receipts.pdf  # any size, straight, upright
-./wsdscan.py -p letter --outdir ~/Scans
-./wsdscan.py -v                   # show the protocol steps
+./slim_scan.py                      # duplex, color, 300 dpi, A4 -> scan_<date>_<time>.pdf
+./slim_scan.py invoice.pdf          # explicit file name
+./slim_scan.py -s adf -m gray -r 100 letter.pdf
+./slim_scan.py -m bw contract.pdf   # black & white: sharp text, small files
+./slim_scan.py --lossless photo.pdf # color without JPEG compression
+./slim_scan.py --brightness 200 --contrast 100 faint.pdf
+./slim_scan.py --ocr letter.pdf         # searchable PDF (needs OCRmyPDF or Tesseract)
+./slim_scan.py --skip-blank mixed.pdf   # leave out the empty backs of one-sided pages
+./slim_scan.py -p auto --deskew --auto-rotate receipts.pdf  # any size, straight, upright
+./slim_scan.py -p letter --outdir ~/Scans
+./slim_scan.py -v                   # show the protocol steps
 ```
 
 Defaults below are the built-in ones; the [config file](#configuration-file) can change them.
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--scanner` | `$WSDSCAN_SCANNER` / config | configured scanner to use (see [multiple scanners](#multiple-scanners)) |
-| `--host` | `$WSDSCAN_HOST` | scanner IP; multicast discovery if unset |
-| `--model` | `$WSDSCAN_MODEL` | only scanners whose manufacturer/model contains this text |
+| `--scanner` | `$SLIM_SCAN_SCANNER` / config | configured scanner to use (see [multiple scanners](#multiple-scanners)) |
+| `--host` | `$SLIM_SCAN_HOST` | scanner IP; multicast discovery if unset |
+| `--model` | `$SLIM_SCAN_MODEL` | only scanners whose manufacturer/model contains this text |
 | `--outdir` | current directory | folder for the default file name |
 | `-L/--list` | | list the scanners found, then exit |
 | `-s/--source` | `duplex` | `adf` (one side) or `duplex` |
@@ -134,11 +134,11 @@ Many scanners can find the paper size themselves, but not over WSD (the ES-580W 
 With `--backend sane`, the tool scans through SANE's `scanimage` command (`sudo apt install sane-utils`) instead of talking WSD itself. Everything after scanning stays the same: blank pages, paper size, straightening, orientation, OCR and the PDF.
 
 ```sh
-./wsdscan.py --backend sane --list
+./slim_scan.py --backend sane --list
 epsonds:net:192.168.2.13         Epson ES-580W (ESC/I-2)
 airscan:w0:ES-580W WSD           WSD ES-580W WSD (ip=192.168.2.13)
-./wsdscan.py --backend sane --device epsonds:net:192.168.2.13 --info
-./wsdscan.py --backend sane --device epsonds:net:192.168.2.13 -p auto --deskew stack.pdf
+./slim_scan.py --backend sane --device epsonds:net:192.168.2.13 --info
+./slim_scan.py --backend sane --device epsonds:net:192.168.2.13 -p auto --deskew stack.pdf
 ```
 
 - **Why:** SANE reaches USB scanners and other protocols, and its backends know model-specific features. For the ES-580W, the `epsonds` backend (part of sane-backends) offers the scanner's own skew correction (`--adf-skew`), which the scanner refuses over WSD. It also lists the scanner's own cropping (`--adf-crp`), but up to sane-backends 1.4.0 it switches that off as soon as `scanimage` sets the scan area, which `scanimage` always does; then this tool cuts the pages itself (see [epsonds with the scanner's own cropping](#epsonds-with-the-scanners-own-cropping)). `--info` shows which of the two can be used.
@@ -157,7 +157,7 @@ Tested on the ES-580W with both fixes: an A6 card followed by an A4 sheet came b
 
 ### Configuration file
 
-`~/.config/wsdscan/config.ini` (or `$WSDSCAN_CONFIG`) sets your own defaults. The **Scan to PDF** desktop app edits it in its preferences, so settings made there also apply to this command. You can also edit it by hand:
+`~/.config/slim-scan/config.ini` (or `$SLIM_SCAN_CONFIG`) sets your own defaults. The **Slim Scan** desktop app edits it in its preferences, so settings made there also apply to this command. You can also edit it by hand:
 
 ```ini
 [scan]
@@ -168,7 +168,7 @@ outdir = ~/Documents/Scans
 filename = scan_{date}_{time}.pdf
 ```
 
-See [Precedence](#precedence) below. `./wsdscan.py --show-config` shows the result, including the configured scanners.
+See [Precedence](#precedence) below. `./slim_scan.py --show-config` shows the result, including the configured scanners.
 
 #### Multiple scanners
 
@@ -189,16 +189,16 @@ outdir = ~/Documents/Home
 ```
 
 ```sh
-./wsdscan.py letter.pdf                    # Office, color
-./wsdscan.py --scanner Home letter.pdf     # Home, black & white, into ~/Documents/Home
-./wsdscan.py --list                        # network scanners; configured ones are marked [Office]
+./slim_scan.py letter.pdf                    # Office, color
+./slim_scan.py --scanner Home letter.pdf     # Home, black & white, into ~/Documents/Home
+./slim_scan.py --list                        # network scanners; configured ones are marked [Office]
 ```
 
 #### Precedence
 
 Highest first:
 1. command-line options
-2. environment variables (`WSDSCAN_SCANNER`, `WSDSCAN_HOST`, `WSDSCAN_MODEL`)
+2. environment variables (`SLIM_SCAN_SCANNER`, `SLIM_SCAN_HOST`, `SLIM_SCAN_MODEL`)
 3. the selected `[scanner NAME]`
 4. `[scan]`
 5. built-in defaults
@@ -246,8 +246,8 @@ Anything else the scanner reports in that section, including vendor extensions, 
 The validation uses WS-Scan's `ValidateScanTicket`: no paper is fed and no scan job is created.
 
 ```sh
-./wsdscan.py --check                       # checks the defaults: duplex, color, 300 dpi, A4
-./wsdscan.py --check -s adf -m bw -r 100   # checks specific settings
+./slim_scan.py --check                       # checks the defaults: duplex, color, 300 dpi, A4
+./slim_scan.py --check -s adf -m bw -r 100   # checks specific settings
 ```
 
 The final line says whether the chosen settings would work. The exit code is `0` if they're usable and `1` if not, so it also works as a health check from scripts or cron. If the scanner doesn't implement `ValidateScanTicket`, the table is skipped and the result is based on the reported capabilities alone.
@@ -308,9 +308,9 @@ The desktop app shows device texts as plain text, never as markup. Its "open-fil
 The scanner itself offers these protections, according to Epson's administrator guides for its network scanners. They are set up in its web configuration (`https://<scanner-ip>/`):
 
 - **Admin password:** keeps others from changing the settings, including the ones below.
-- **Protocols** (Services → Protocol): switch off what you don't use, e.g. Bonjour, SLP or LLTD. wsdscan only needs **WSD**.
-- **IP filtering** (Network Security → IPsec/IP Filtering): refuse everything by default and allow only your computers. For wsdscan they need the services **WS-Discovery** (UDP 3702, only if you don't set the address) and **HTTP (Local)** (TCP 80, which carries WSD). This keeps other devices from scanning, but doesn't encrypt anything.
-- **IPsec** (same page): encrypts all traffic between the scanner and your computers, with a pre-shared key or certificates. Epson recommends it against eavesdropping and tampering. On Linux, it's set up with strongSwan or libreswan in transport mode; wsdscan needs no changes. Discovery by multicast can't be protected this way, so set the scanner's address (`--host` or in the config). This combination hasn't been tested with wsdscan yet.
+- **Protocols** (Services → Protocol): switch off what you don't use, e.g. Bonjour, SLP or LLTD. slim-scan only needs **WSD**.
+- **IP filtering** (Network Security → IPsec/IP Filtering): refuse everything by default and allow only your computers. For slim-scan they need the services **WS-Discovery** (UDP 3702, only if you don't set the address) and **HTTP (Local)** (TCP 80, which carries WSD). This keeps other devices from scanning, but doesn't encrypt anything.
+- **IPsec** (same page): encrypts all traffic between the scanner and your computers, with a pre-shared key or certificates. Epson recommends it against eavesdropping and tampering. On Linux, it's set up with strongSwan or libreswan in transport mode; slim-scan needs no changes. Discovery by multicast can't be protected this way, so set the scanner's address (`--host` or in the config). This combination hasn't been tested with slim-scan yet.
 - **HTTPS:** the ES-580W serves only its web configuration over HTTPS, not WSD; `https://<scanner-ip>/WSD/DEVICE` answers 404. Other scanners may differ.
 
 IEEE 802.1X, also supported by the scanner, authenticates the scanner to the network (e.g. an enterprise Wi-Fi), not users to the scanner. Epson's guides describe no per-user login for scanning.
@@ -325,12 +325,12 @@ IEEE 802.1X, also supported by the scanner, authenticates the scanner to the net
 
 ## Desktop app
 
-`gui/` contains **Scan to PDF**, a GTK 4 / libadwaita desktop app for GNOME, KDE Plasma and Ubuntu, built on this tool:
+`gui/` contains **Slim Scan**, a GTK 4 / libadwaita desktop app for GNOME, KDE Plasma and Ubuntu, built on this tool:
 - **Scanners:** several scanners, each with its own settings, edited in its preferences.
 - **During a scan:** page preview with a counter, optional removal of blank pages, an optional review step to remove pages before saving and OCR (and to scan more pages into the same document), and OCR progress per page.
 - **Desktop integration:** a status bar icon, start at login, desktop notifications and the desktop's own file dialogs.
 
-Install it with `gui/install.sh`, which also installs this tool as the `wsdscan` command. See [gui/README.md](gui/README.md).
+Install it with `gui/install.sh`, which also installs this tool as the `slim-scan` command. See [gui/README.md](gui/README.md).
 
 | After a scan, with text recognition | Reviewing pages before saving | Adjusting a page | A scanner's settings |
 |---|---|---|---|

@@ -10,15 +10,15 @@ from types import SimpleNamespace
 from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPT = os.path.join(ROOT, "wsdscan.py")
+SCRIPT = os.path.join(ROOT, "slim_scan.py")
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import wsdscan as tool  # noqa: E402
+import slim_scan as tool  # noqa: E402
 from fake_sane import (AIRSCAN_OPTIONS, EPSONDS_OPTIONS, configure,  # noqa: E402
                        make_scanimage_bin, read_log)
 from fake_wsd import JPEG_RGB, make_tiff  # noqa: E402
-from test_wsdscan import parse_pdf  # noqa: E402
+from test_slim_scan import parse_pdf  # noqa: E402
 
 EPSON = "epsonds:net:192.168.2.13"
 AIRSCAN = "airscan:w0:ES-580W WSD"
@@ -299,8 +299,8 @@ class ScanTest(SaneBase):
 
 class ConfigAndCliTest(SaneBase):
     def run_tool(self, *argv):
-        env = dict(os.environ, WSDSCAN_CONFIG=os.path.join(self.dir.name, "config.ini"))
-        for var in ("WSDSCAN_HOST", "WSDSCAN_MODEL", "WSDSCAN_SCANNER"):
+        env = dict(os.environ, SLIM_SCAN_CONFIG=os.path.join(self.dir.name, "config.ini"))
+        for var in ("SLIM_SCAN_HOST", "SLIM_SCAN_MODEL", "SLIM_SCAN_SCANNER"):
             env.pop(var, None)
         return subprocess.run([sys.executable, SCRIPT, *argv], cwd=self.dir.name,
                               capture_output=True, text=True, timeout=60, env=env)

@@ -17,12 +17,12 @@ from types import SimpleNamespace
 from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPT = os.path.join(ROOT, "wsdscan.py")
+SCRIPT = os.path.join(ROOT, "slim_scan.py")
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ["WSDSCAN_CONFIG"] = os.path.join(tempfile.mkdtemp(prefix="wsdscan-sec-"), "config.ini")
+os.environ["SLIM_SCAN_CONFIG"] = os.path.join(tempfile.mkdtemp(prefix="slim-scan-sec-"), "config.ini")
 
-import wsdscan as tool  # noqa: E402
+import slim_scan as tool  # noqa: E402
 from fake_wsd import JPEG_GRAY, JPEG_RGB, FakeScanner, envelope, make_tiff  # noqa: E402
 
 ES580W = {"model": "ES-580W", "service_path": "/WDP/SCAN",

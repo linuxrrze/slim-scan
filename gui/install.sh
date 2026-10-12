@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install "Scan to PDF" (GUI) and the wsdscan command.
+# Install "Slim Scan" (GUI) and the slim-scan command.
 #
 #   ./install.sh              for the current user (~/.local)
 #   sudo ./install.sh --system   for all users (/usr/local)
@@ -9,7 +9,7 @@
 # Needs Python 3.9+, GTK 4.12+ and libadwaita 1.5+ with their Python bindings.
 set -eu
 
-APP_ID=io.github.wsdscan.ScanToPdf
+APP_ID=io.github.linuxrrze.SlimScan
 HERE=$(cd "$(dirname "$0")" && pwd)
 PREFIX=$HOME/.local
 MODE=install
@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-LIB=$PREFIX/share/wsdscan
+LIB=$PREFIX/share/slim-scan
 BIN=$PREFIX/bin
 APPS=$PREFIX/share/applications
 ICONS=$PREFIX/share/icons/hicolor
@@ -50,20 +50,20 @@ refresh_caches() {
 	fi
 }
 
-# wsdscan.py: next to this script (link or copy), else in the repository root.
+# slim_scan.py: next to this script (link or copy), else in the repository root.
 SRC_CLI=""
-for candidate in "$HERE/wsdscan.py" "$HERE/../wsdscan.py"; do
+for candidate in "$HERE/slim_scan.py" "$HERE/../slim_scan.py"; do
 	if [ -r "$candidate" ]; then SRC_CLI=$candidate; break; fi
 done
 
 if [ "$MODE" = dist ]; then
-	[ -n "$SRC_CLI" ] || die "wsdscan.py not found"
+	[ -n "$SRC_CLI" ] || die "slim_scan.py not found"
 	VERSION=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' "$HERE/scanform.py")
 	NAME=scan-to-pdf-$VERSION
 	STAGE=$(mktemp -d)
 	trap 'rm -rf "$STAGE"' EXIT
 	mkdir -p "$STAGE/$NAME/data"
-	cp -L "$SRC_CLI" "$HERE/wsdscan_gui.py" "$HERE/scanform.py" "$HERE/tray.py" "$HERE/i18n.py" \
+	cp -L "$SRC_CLI" "$HERE/slim_scan_gui.py" "$HERE/scanform.py" "$HERE/tray.py" "$HERE/i18n.py" \
 		"$HERE/install.sh" "$HERE/README.md" "$STAGE/$NAME/"
 	cp -R "$HERE/data/"* "$STAGE/$NAME/data/"
 	mkdir -p "$STAGE/$NAME/po"
@@ -76,13 +76,13 @@ fi
 
 if [ "$MODE" = uninstall ]; then
 	rm -rf "$LIB"
-	rm -f "$BIN/wsdscan-gui" "$BIN/wsdscan" "$APPS/$APP_ID.desktop" \
+	rm -f "$BIN/slim-scan-gui" "$BIN/slim-scan" "$APPS/$APP_ID.desktop" \
 		"$ICONS/scalable/apps/$APP_ID.svg" "$ICONS/symbolic/apps/$APP_ID-symbolic.svg" \
 		"$META/$APP_ID.metainfo.xml"
 	# A per-user autostart entry would start the removed app at every login.
 	rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/$APP_ID.desktop"
 	refresh_caches
-	echo "Scan to PDF removed from $PREFIX. Your settings (~/.config/wsdscan) were kept."
+	echo "Slim Scan removed from $PREFIX. Your settings (~/.config/slim-scan) were kept."
 	exit 0
 fi
 
@@ -113,7 +113,7 @@ if (Adw.get_major_version(), Adw.get_minor_version()) < (1, 5):
     raise SystemExit(f"libadwaita {Adw.get_major_version()}.{Adw.get_minor_version()} found, 1.5+ needed")
 PY
 	); then
-		echo "Scan to PDF needs GTK 4 and libadwaita for Python:" >&2
+		echo "Slim Scan needs GTK 4 and libadwaita for Python:" >&2
 		echo "  $(printf '%s\n' "$problem" | tail -n 1)" >&2
 		echo "Install them with:" >&2
 		hint >&2
@@ -124,31 +124,31 @@ fi
 
 # --- files ------------------------------------------------------------------------
 if [ -z "$SRC_CLI" ]; then
-	echo "error: wsdscan.py not found (looked in $HERE and $(dirname "$HERE"))." >&2
+	echo "error: slim_scan.py not found (looked in $HERE and $(dirname "$HERE"))." >&2
 	echo "The installer needs the whole repository, not just the gui folder. Either:" >&2
 	echo "  - run it from a complete copy of the repository (gui/install.sh), or" >&2
 	echo "  - build a self-contained package there with 'gui/install.sh --dist' and" >&2
 	echo "    copy that archive instead, or" >&2
-	echo "  - copy wsdscan.py next to install.sh." >&2
+	echo "  - copy slim_scan.py next to install.sh." >&2
 	exit 1
 fi
 
 mkdir -p "$LIB" "$BIN" "$APPS" "$ICONS/scalable/apps" "$ICONS/symbolic/apps" "$META"
-cp -L "$SRC_CLI" "$HERE/wsdscan_gui.py" "$HERE/scanform.py" "$HERE/tray.py" "$HERE/i18n.py" "$LIB/"
+cp -L "$SRC_CLI" "$HERE/slim_scan_gui.py" "$HERE/scanform.py" "$HERE/tray.py" "$HERE/i18n.py" "$LIB/"
 rm -rf "$LIB/po" "$LIB/data"  # languages and icons removed since the last install
 mkdir -p "$LIB/po" "$LIB/data/icons"
 cp "$HERE/po/"*.po "$LIB/po/"
 cp "$HERE/data/icons/"*.svg "$LIB/data/icons/"  # page correction icons
 PYTHON=$(command -v python3)
 printf '#!/bin/sh\nexec %s %s "$@"\n' "$(shell_quote "$PYTHON")" \
-	"$(shell_quote "$LIB/wsdscan_gui.py")" > "$BIN/wsdscan-gui"
+	"$(shell_quote "$LIB/slim_scan_gui.py")" > "$BIN/slim-scan-gui"
 printf '#!/bin/sh\nexec %s %s "$@"\n' "$(shell_quote "$PYTHON")" \
-	"$(shell_quote "$LIB/wsdscan.py")" > "$BIN/wsdscan"
-chmod 755 "$BIN/wsdscan-gui" "$BIN/wsdscan"
+	"$(shell_quote "$LIB/slim_scan.py")" > "$BIN/slim-scan"
+chmod 755 "$BIN/slim-scan-gui" "$BIN/slim-scan"
 # Absolute Exec path (~/.local/bin is not always on the desktop session's PATH),
 # quoted per the Desktop Entry spec by the app's own, tested function.
 EXEC_LINE=$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import scanform
-print(scanform.desktop_exec([sys.argv[2]]))' "$LIB" "$BIN/wsdscan-gui") \
+print(scanform.desktop_exec([sys.argv[2]]))' "$LIB" "$BIN/slim-scan-gui") \
 	|| die "cannot use the install path $BIN in a desktop file"
 EXEC_LINE=$EXEC_LINE awk '/^Exec=/ { print "Exec=" ENVIRON["EXEC_LINE"]; next } { print }' \
 	"$HERE/data/$APP_ID.desktop" > "$APPS/$APP_ID.desktop"
@@ -157,7 +157,7 @@ cp "$HERE/data/$APP_ID-symbolic.svg" "$ICONS/symbolic/apps/"
 cp "$HERE/data/$APP_ID.metainfo.xml" "$META/"
 refresh_caches
 
-echo "Scan to PDF installed in $PREFIX."
-echo "  Start it from the application menu (\"Scan to PDF\") or with: $BIN/wsdscan-gui"
-echo "  Command-line tool: $BIN/wsdscan"
+echo "Slim Scan installed in $PREFIX."
+echo "  Start it from the application menu (\"Slim Scan\") or with: $BIN/slim-scan-gui"
+echo "  Command-line tool: $BIN/slim-scan"
 case ":$PATH:" in *":$BIN:"*) ;; *) echo "  Note: $BIN is not on your PATH." ;; esac
