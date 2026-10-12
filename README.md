@@ -1,14 +1,19 @@
 # slim-scan
 
-Small CLI that scans from a network scanner and saves all pages from the document feeder as one PDF.
+Small CLI that scans all pages from a scanner's document feeder into one PDF, with a [desktop app](#desktop-app) on top.
 
-It works with any scanner that supports WSD (Microsoft's network scan protocol: WS-Discovery and WS-Scan, SOAP over HTTP) and has a document feeder. It was developed and tested with the **Epson ES-580W**, which has no eSCL/AirScan, so WSD is its only driverless option.
+It supports two backends, chosen with `--backend` (or `backend` in the [config file](#configuration-file)):
 
-The tool talks to the scanner directly and writes the PDF itself. It needs only Python 3, with no SANE, `scanimage` or extra packages. WSD must be enabled on the scanner, usually in its web configuration.
+| Backend | Reaches | Needs |
+|---|---|---|
+| **WSD** (`wsd`, the default) | network scanners that speak WSD (Microsoft's network scan protocol: WS-Discovery and WS-Scan, SOAP over HTTP) | only Python 3; the tool talks to the scanner itself. WSD must be enabled on the scanner, usually in its web configuration. |
+| **SANE** (`sane`) | every scanner SANE has a backend for: USB and network, WSD, eSCL/AirScan and vendor protocols | SANE's `scanimage` (`sudo apt install sane-utils`) and the backend for your scanner |
 
-Optionally it scans through [SANE](#sane) instead (`--backend sane`), e.g. for USB scanners, or to let the scanner cut and straighten the pages itself where its SANE backend offers that (the ES-580W does with `epsonds`).
+After scanning, both work the same: this tool handles blank pages, paper size, straightening, orientation and OCR, and writes the PDF itself. With SANE, a scanner can also cut and straighten pages itself where its backend offers that. See [SANE](#sane) for the details.
 
-Only standard WSD features are used. Everything model-dependent (resolutions, color modes, formats, duplex, paper size, brightness/contrast) is read from the scanner at run time.
+It was developed and tested with the **Epson ES-580W**, which has no eSCL/AirScan. It works with both backends: over WSD directly, and over SANE with the `epsonds` backend.
+
+With WSD, only standard features are used. Everything model-dependent (resolutions, color modes, formats, duplex, paper size, brightness/contrast) is read from the scanner at run time, over either backend.
 
 ## Setup
 
