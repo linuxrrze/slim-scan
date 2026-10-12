@@ -282,6 +282,8 @@ The tests never read your real config file. The desktop app's tests are in `gui/
 
 `ES580W_PROFILE` in the test file models the real device: `/WDP/SCAN` service path, only `exif`/`tiff` formats. When the real scanner surprises you, record the new behavior there or as a fake option and add a test.
 
+Findings from testing with the real scanner, upstream SANE work and open ideas are collected in [docs/NOTES.md](docs/NOTES.md).
+
 ## Security
 
 WSD itself has no authentication: any device on your network can answer discovery and claim to be a scanner. The ES-580W serves WSD only over plain HTTP, so scan data travels unencrypted unless the network protects it (see [Securing the connection](#securing-the-connection)). The tool limits what a malicious or broken device can do:
