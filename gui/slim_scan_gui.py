@@ -745,13 +745,18 @@ class PageTile(Gtk.Box):
         self.state = Gtk.Image(visible=False, halign=Gtk.Align.END, valign=Gtk.Align.END,
                                margin_bottom=4, margin_end=4, pixel_size=20)
         self.spinner = Gtk.Spinner(spinning=True, visible=False, halign=Gtk.Align.END,
-                                   valign=Gtk.Align.END, margin_bottom=4, margin_end=4)
+                                   valign=Gtk.Align.END, margin_bottom=4, margin_end=4,
+                                   tooltip_text=_("Recognizing text…"))
         overlay = Gtk.Overlay(child=self.picture)
         for widget in (self.keep, self.state, self.spinner, self.corrections, self.turn_buttons):
             overlay.add_overlay(widget)
         self.append(overlay)
         self.label = Gtk.Label(label=_("Page {n}").format(n=number), css_classes=["caption"])
         self.append(self.label)
+        self.activity = Gtk.Label(label=_("Recognizing text…"), visible=False,
+                                  css_classes=["caption", "dim-label"], wrap=True,
+                                  justify=Gtk.Justification.CENTER)
+        self.append(self.activity)
 
     def _toggled(self, button, on_toggled):
         self.picture.set_opacity(1.0 if button.get_active() else 0.35)
@@ -841,6 +846,7 @@ class PageTile(Gtk.Box):
     def set_ocr_state(self, state):
         """None, "waiting", "running" or "done"."""
         self.spinner.set_visible(state == "running")
+        self.activity.set_visible(state == "running")
         self.state.set_visible(state in ("waiting", "done"))
         if state == "done":
             self.state.set_from_icon_name("object-select-symbolic")
@@ -1232,10 +1238,9 @@ class MainWindow(Adw.ApplicationWindow):
             if not self.ocr_tiles:  # without review: the pages not removed as blank
                 self.ocr_tiles = [tile for tile in self.tiles if tile.kept()]
             self.ocr_total = pages
+            # The whole document at once, unless "ocr_page" follows (Tesseract).
             for tile in self.ocr_tiles:
-                tile.set_ocr_state("waiting")
-            if self.ocr_tiles:
-                self.ocr_tiles[0].set_ocr_state("running")
+                tile.set_ocr_state("running")
         elif event == "ocr_page":
             for i, tile in enumerate(self.ocr_tiles):
                 tile.set_ocr_state("done" if i < pages else "running" if i == pages else "waiting")

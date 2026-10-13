@@ -1274,8 +1274,8 @@ class OcrTest(unittest.TestCase):
             tool.scan_to_file(args(host=fake.host, model=None, ocr=True), out,
                               on_progress=lambda event, n: events.append((event, n)),
                               select_pages=lambda pages, blank: [0, 1, 3])
-        self.assertEqual(events[-5:], [("saving", 3), ("ocr", 3), ("ocr_page", 1),
-                                       ("ocr_page", 2), ("ocr_page", 3)])
+        self.assertEqual(events[-6:], [("saving", 3), ("ocr", 3), ("ocr_page", 0),
+                                       ("ocr_page", 1), ("ocr_page", 2), ("ocr_page", 3)])
         call = read_log(self.log)[0]
         self.assertEqual(len(call[call.index("PAGES") + 1:]), 3, "removed page not recognized")
 

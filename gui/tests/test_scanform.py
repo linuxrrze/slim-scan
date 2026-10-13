@@ -450,7 +450,9 @@ class PreviewTextTest(unittest.TestCase):
         self.assertEqual(scanform.pages_summary(4, 3), "3 of 4 pages kept")
 
     def test_progress_texts(self):
-        self.assertEqual(scanform.progress_text("ocr_page", 2, 4), "Recognizing text: page 2 of 4")
+        self.assertEqual(scanform.progress_text("ocr_page", 0, 4), "Recognizing text: page 1 of 4")
+        self.assertEqual(scanform.progress_text("ocr_page", 2, 4), "Recognizing text: page 3 of 4")
+        self.assertEqual(scanform.progress_text("ocr_page", 4, 4), "Recognizing text: page 4 of 4")
         self.assertIn("Save", scanform.progress_text("review", 4))
 
     def test_summary_mentions_review(self):

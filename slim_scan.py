@@ -922,7 +922,8 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
       "all_blank"                n = pages kept because all of them were blank
       "saving"                   n = pages that will be saved
       "ocr"                      n = pages to recognize (OCR starts)
-      "ocr_page"                 n = pages recognized so far (Tesseract only)
+      "ocr_page"                 n = pages recognized so far (Tesseract only, from 0;
+                                 without it, the whole document is recognized at once)
     on_page_image(n, image, info) gets each scanned page's JPEG/TIFF data and
     its analyze_page() result: whether it is blank (args.skip_blank) and the
     corrections found (paper "auto", args.deskew, args.auto_rotate).
@@ -2927,8 +2928,9 @@ def parse_tsv(text):
 def run_ocr(engine, path, pdf_path, images, dpi, lang, on_page=None, pages=None):
     """Replace pdf_path by a searchable PDF. Raises ScanError (pdf_path is kept).
 
-    on_page(n) reports recognized pages; only Tesseract reports them
-    ("Page N : file" lines), OCRmyPDF has no per-page progress output.
+    on_page(n) reports recognized pages, starting with 0; only Tesseract
+    reports them ("Page N : file" lines), OCRmyPDF has no per-page progress
+    output.
     pages: analyze_page() results, so Tesseract's text follows the page
     corrections (OCRmyPDF reads the already corrected PDF).
     """
@@ -2962,6 +2964,8 @@ def run_ocr(engine, path, pdf_path, images, dpi, lang, on_page=None, pages=None)
                 done.append(int(match.group(1)))
                 on_page(len(done))
 
+        if on_page and engine == "tesseract":
+            on_page(0)
         code, output = run_command(cmd, on_line)
         if engine == "tesseract":
             result_pdf = result_pdf[:-4] + ".tsv"

@@ -428,8 +428,9 @@ def progress_text(event, pages, total=0):
         return _("Saving PDF…")
     if event == "ocr":
         return _("Recognizing text…")
-    if event == "ocr_page":
-        return _("Recognizing text: page {n} of {total}").format(n=pages, total=total)
+    if event == "ocr_page":  # pages = recognized so far; the next one is in progress
+        return _("Recognizing text: page {n} of {total}").format(n=min(pages + 1, total),
+                                                                 total=total)
     if event == "review":
         return _("Untick the pages you don’t want, then click Save. Scan adds more pages. "
                  "You can still change the file name and folder.")

@@ -418,6 +418,30 @@ class GtkTest(unittest.TestCase):
             self.assertIsNotNone(window.tiles[0].picture.get_paintable(), "thumbnail decoded")
             window.close()
 
+    def test_text_recognition_shown_on_pages(self):
+        with FakeScanner(model="ES-580W", sheets=2) as fake:
+            _app, window, _out = self.start_app(fake)
+            window.on_scan()
+            wait_for(lambda: window.cancel_event is None)
+
+            def states():
+                return ["running" if t.spinner.get_visible() and t.activity.get_visible()
+                        else t.state.get_icon_name() if t.state.get_visible() else None
+                        for t in window.tiles]
+
+            window.on_progress("ocr", 4)  # OCRmyPDF: the whole document at once
+            self.assertEqual(states(), ["running"] * 4)
+            self.assertEqual(window.tiles[0].activity.get_label(), "Recognizing text…")
+            self.assertEqual(window.tiles[0].spinner.get_tooltip_text(), "Recognizing text…")
+            window.on_progress("ocr_page", 0)  # Tesseract: page by page
+            self.assertEqual(states(), ["running"] + ["content-loading-symbolic"] * 3)
+            self.assertEqual(window.progress.get_text(), "Recognizing text: page 1 of 4")
+            window.on_progress("ocr_page", 2)
+            self.assertEqual(states(), ["object-select-symbolic"] * 2
+                             + ["running", "content-loading-symbolic"])
+            self.assertEqual(window.progress.get_text(), "Recognizing text: page 3 of 4")
+            window.close()
+
     def test_review_removes_pages_before_saving(self):
         with FakeScanner(model="ES-580W", sheets=2) as fake:
             _app, window, out_dir = self.start_app(fake)
