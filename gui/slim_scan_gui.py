@@ -47,10 +47,12 @@ THUMB_HEIGHT = 150  # page preview height in pixels
 OCR_PAGE_STATES = {"ocr_queued": "waiting", "ocr_started": "running", "ocr_done": "done",
                    "ocr_failed": None, "ocr_cancelled": None}
 THUMB_DETAIL = 2  # thumbnail pixels per preview pixel of the page (sharp on HiDPI)
-ICONS = os.path.join(HERE, "data", "icons")  # the correction icons (installed: next to this file)
+ICONS = os.path.join(HERE, "data", "icons")  # the page icons (installed: next to this file)
 CSS = """
 .correction { min-width: 24px; min-height: 24px; padding: 0; }
 .correction:not(:checked) { opacity: 0.55; }
+.ocr-badge { padding: 8px 10px; border-radius: 999px; }
+.ocr-running { outline: 2px solid @accent_color; outline-offset: -2px; }
 """
 MAX_THUMBNAIL_SOURCE_PIXELS = 100_000_000  # 600 dpi A3 is ~70 megapixels
 
@@ -748,11 +750,14 @@ class PageTile(Gtk.Box):
         self.keep.connect("toggled", self._toggled, on_toggled)
         self.state = Gtk.Image(visible=False, halign=Gtk.Align.END, valign=Gtk.Align.END,
                                margin_bottom=4, margin_end=4, pixel_size=20)
-        self.spinner = Gtk.Spinner(spinning=True, visible=False, halign=Gtk.Align.END,
-                                   valign=Gtk.Align.END, margin_bottom=4, margin_end=4,
-                                   tooltip_text=_("Recognizing text…"))
+        # While its text is recognized: a badge in the middle of the page.
+        self.ocr_badge = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER,
+                                 visible=False, tooltip_text=_("Recognizing text…"),
+                                 css_classes=["osd", "ocr-badge"])
+        self.ocr_badge.append(Gtk.Image(icon_name="slim-scan-ocr-symbolic", pixel_size=20))
+        self.ocr_badge.append(Gtk.Spinner(spinning=True))
         overlay = Gtk.Overlay(child=self.picture)
-        for widget in (self.keep, self.state, self.spinner, self.corrections, self.turn_buttons):
+        for widget in (self.keep, self.state, self.ocr_badge, self.corrections, self.turn_buttons):
             overlay.add_overlay(widget)
         self.append(overlay)
         self.label = Gtk.Label(label=_("Page {n}").format(n=number), css_classes=["caption"])
@@ -850,8 +855,12 @@ class PageTile(Gtk.Box):
     def set_ocr_state(self, state):
         """None, "waiting", "running" or "done"."""
         self.ocr_state = state
-        self.spinner.set_visible(state == "running")
+        self.ocr_badge.set_visible(state == "running")
         self.activity.set_visible(state == "running")
+        if state == "running":
+            self.picture.add_css_class("ocr-running")
+        else:
+            self.picture.remove_css_class("ocr-running")
         self.state.set_visible(state in ("waiting", "done"))
         if state == "done":
             self.state.set_from_icon_name("object-select-symbolic")

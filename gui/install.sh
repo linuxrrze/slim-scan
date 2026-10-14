@@ -138,7 +138,7 @@ cp -L "$SRC_CLI" "$HERE/slim_scan_gui.py" "$HERE/scanform.py" "$HERE/tray.py" "$
 rm -rf "$LIB/po" "$LIB/data"  # languages and icons removed since the last install
 mkdir -p "$LIB/po" "$LIB/data/icons"
 cp "$HERE/po/"*.po "$LIB/po/"
-cp "$HERE/data/icons/"*.svg "$LIB/data/icons/"  # page correction icons
+cp "$HERE/data/icons/"*.svg "$LIB/data/icons/"  # page icons (corrections, text recognition)
 PYTHON=$(command -v python3)
 printf '#!/bin/sh\nexec %s %s "$@"\n' "$(shell_quote "$PYTHON")" \
 	"$(shell_quote "$LIB/slim_scan_gui.py")" > "$BIN/slim-scan-gui"

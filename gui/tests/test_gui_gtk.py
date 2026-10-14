@@ -425,7 +425,8 @@ class GtkTest(unittest.TestCase):
             wait_for(lambda: window.cancel_event is None)
 
             def states():
-                return ["running" if t.spinner.get_visible() and t.activity.get_visible()
+                return ["running" if t.ocr_badge.get_visible() and t.activity.get_visible()
+                        and t.picture.has_css_class("ocr-running")
                         else t.state.get_icon_name() if t.state.get_visible() else None
                         for t in window.tiles]
 
@@ -439,7 +440,7 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(states(), ["object-select-symbolic", "running",
                                         "content-loading-symbolic", None])
             self.assertEqual(window.tiles[1].activity.get_label(), "Recognizing text…")
-            self.assertEqual(window.tiles[1].spinner.get_tooltip_text(), "Recognizing text…")
+            self.assertEqual(window.tiles[1].ocr_badge.get_tooltip_text(), "Recognizing text…")
             window.ocr_tiles = window.tiles[:3]
             window.on_progress("ocr", 3)  # saving waits for the rest
             window.on_progress("ocr_page", 1)
