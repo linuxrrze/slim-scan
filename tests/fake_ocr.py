@@ -2,7 +2,8 @@
 
 make_ocr_bin(directory, engines) writes stand-ins that implement just the
 command-line interface slim-scan uses. They log their arguments to
-$FAKE_OCR_LOG (one JSON list per call) and fail if $FAKE_OCR_FAIL is set.
+$FAKE_OCR_LOG (one JSON list per call) and fail if $FAKE_OCR_FAIL is set;
+$FAKE_OCR_DELAY makes Tesseract take that many seconds.
 """
 
 import json
@@ -29,21 +30,25 @@ if "--psm" in args and args[args.index("--psm") + 1] == "0":
     print(f"Page number: 0\nOrientation in degrees: 0\nRotate: {match.group(1).decode()}\n"
           "Orientation confidence: 9.50\nScript: Latin\nScript confidence: 20.00")
     sys.exit(0)
-with open(os.environ["FAKE_OCR_LOG"], "a") as log:
-    pages = open(args[0]).read().split()
-    log.write(json.dumps(["tesseract"] + args + ["PAGES"] + pages) + "\n")
+with open(os.environ["FAKE_OCR_LOG"], "a") as log:  # one page image per call
+    log.write(json.dumps(["tesseract"] + args
+                         + ["THREADS", os.environ.get("OMP_THREAD_LIMIT", "")]) + "\n")
 print("Tesseract Open Source OCR Engine v5.3.4 with Leptonica", file=sys.stderr)
+if os.environ.get("FAKE_OCR_DELAY"):
+    import time
+    time.sleep(float(os.environ["FAKE_OCR_DELAY"]))
 if os.environ.get("FAKE_OCR_FAIL"):
     print("Error opening data file", file=sys.stderr); sys.exit(1)
-for n, page in enumerate(pages, 1):  # like real Tesseract with a file list
-    print(f"Page {n} : {page}", file=sys.stderr, flush=True)
 lang = args[args.index("-l") + 1]
 assert args[-1] == "tsv", args
-with open(args[1] + ".tsv", "w") as f:  # one word per page: "lang-pageN"
+with open(args[1] + ".tsv", "w") as f:  # "lang-page words" / "second line"
     f.write("level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n")
-    for n in range(1, len(pages) + 1):
-        f.write(f"1\t{n}\t0\t0\t0\t0\t0\t0\t400\t500\t-1\t\n")
-        f.write(f"5\t{n}\t1\t1\t1\t1\t20\t30\t120\t24\t95.5\t{lang}-page{n}\n")
+    f.write("1\t1\t0\t0\t0\t0\t0\t0\t400\t500\t-1\t\n")
+    f.write("4\t1\t1\t1\t1\t0\t20\t30\t190\t24\t-1\t\n")
+    f.write(f"5\t1\t1\t1\t1\t1\t20\t30\t120\t24\t95.5\t{lang}-page\n")
+    f.write("5\t1\t1\t1\t1\t2\t150\t30\t60\t24\t95.5\twords\n")
+    f.write("4\t1\t1\t1\t2\t0\t20\t60\t80\t24\t-1\t\n")
+    f.write("5\t1\t1\t1\t2\t1\t20\t60\t80\t24\t95.5\tsecond\n")
 '''
 
 OCRMYPDF = r'''

@@ -43,6 +43,9 @@ from scanform import _  # noqa: E402
 
 MIN_ADW = (1, 5)
 THUMB_HEIGHT = 150  # page preview height in pixels
+# Text recognition of single pages (Tesseract, while scanning) -> page state.
+OCR_PAGE_STATES = {"ocr_queued": "waiting", "ocr_started": "running", "ocr_done": "done",
+                   "ocr_failed": None, "ocr_cancelled": None}
 THUMB_DETAIL = 2  # thumbnail pixels per preview pixel of the page (sharp on HiDPI)
 ICONS = os.path.join(HERE, "data", "icons")  # the correction icons (installed: next to this file)
 CSS = """
@@ -212,7 +215,7 @@ class ScanSettings:
         self.lossless.set_subtitle(hint)
 
     def set_ocr(self, values):
-        """Switch state and subtitle; unavailable without OCRmyPDF/Tesseract."""
+        """Switch state and subtitle; unavailable without Tesseract/OCRmyPDF."""
         status = self.ocr_status
         self.ocr.set_active(bool(values["ocr"]) and status.available)
         self.ocr.set_sensitive(status.available)
@@ -709,6 +712,7 @@ class PageTile(Gtk.Box):
         self.number = number
         self.info, self.dpi, self.data = info, dpi, data
         self.editable = self.blank = False
+        self.ocr_state = None
         self.paintable = None
         self.picture = Gtk.Picture(content_fit=Gtk.ContentFit.CONTAIN, can_shrink=True,
                                    width_request=THUMB_HEIGHT * 7 // 10,
@@ -845,6 +849,7 @@ class PageTile(Gtk.Box):
 
     def set_ocr_state(self, state):
         """None, "waiting", "running" or "done"."""
+        self.ocr_state = state
         self.spinner.set_visible(state == "running")
         self.activity.set_visible(state == "running")
         self.state.set_visible(state in ("waiting", "done"))
@@ -1234,16 +1239,17 @@ class MainWindow(Adw.ApplicationWindow):
             for tile in self.tiles:  # they are saved after all
                 tile.mark_blank(False)
             return
+        if event in OCR_PAGE_STATES:  # Tesseract, page by page while scanning
+            if pages <= len(self.tiles):
+                self.tiles[pages - 1].set_ocr_state(OCR_PAGE_STATES[event])
+            return
         if event == "ocr":
             if not self.ocr_tiles:  # without review: the pages not removed as blank
                 self.ocr_tiles = [tile for tile in self.tiles if tile.kept()]
             self.ocr_total = pages
-            # The whole document at once, unless "ocr_page" follows (Tesseract).
             for tile in self.ocr_tiles:
-                tile.set_ocr_state("running")
-        elif event == "ocr_page":
-            for i, tile in enumerate(self.ocr_tiles):
-                tile.set_ocr_state("done" if i < pages else "running" if i == pages else "waiting")
+                if tile.ocr_state is None:  # OCRmyPDF: the whole document at once
+                    tile.set_ocr_state("running")
         if event in ("ocr", "ocr_page"):
             # During OCR the cancel button would leave a half-processed file.
             self.cancel_button.set_sensitive(False)
@@ -1346,7 +1352,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.set_progress("")
         if not ocr_error:
             for tile in self.ocr_tiles:
-                tile.set_ocr_state("done")  # OCRmyPDF reports no single pages
+                tile.set_ocr_state("done")
         else:
             for tile in self.ocr_tiles:
                 tile.set_ocr_state(None)

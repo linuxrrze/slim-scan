@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import xml.etree.ElementTree as ET
 from types import SimpleNamespace
@@ -760,15 +761,45 @@ class PageCorrectionTest(unittest.TestCase):
                 self.assertAlmostEqual(x0, min(p[0] for p in corners), delta=1e-6)
                 self.assertAlmostEqual(y0, max(p[1] for p in corners), delta=1e-6)
 
+    def test_text_has_spaces_between_words_of_a_line(self):
+        line, other = (1, 1, 1), (1, 1, 2)
+        words = [("one", 100, 200, 60, 20, line), ("two", 200, 200, 60, 20, line),
+                 ("three", 100, 240, 100, 20, other)]
+        ops = tool.text_layer(words, None)
+        shown = re.findall(r"([\d.]+) Tz .*? Tm <([0-9A-F]+)> Tj", ops)
+        texts = [bytes.fromhex(h).decode("utf-16-be") for _scale, h in shown]
+        self.assertEqual(texts, ["one ", "two", "three"], "no space at the end of a line")
+        # The space reaches to the next word: 4 glyphs of half the size over 100 pixels.
+        self.assertAlmostEqual(float(shown[0][0]), 100 * 100 / (0.5 * 20 * 4), places=2)
+        # Upside down, the next word lies to the left.
+        info = {"size": (1000, 800), "paper": None, "rotate": 180, "use": {"rotate": True}}
+        flipped = [("two", 200, 200, 60, 20, line), ("one", 100, 200, 60, 20, line)]
+        ops = tool.text_layer(flipped, info)
+        self.assertIn(b"two ".decode(), [bytes.fromhex(h).decode("utf-16-be") for h in
+                                         re.findall(r"<([0-9A-F]+)> Tj", ops)])
+        # The words of a line share its baseline and size, whatever their own boxes
+        # (no ascenders, a descender), so viewers keep them in one line.
+        box = (100, 195, 200, 34)
+        ops = tool.text_layer([("scanner", 100, 202, 80, 20, line, box),
+                               ("dog", 200, 195, 30, 34, line, box)], None)
+        self.assertEqual(re.findall(r"/F1 ([\d.]+) Tf .*? ([-\d.]+) Tm", ops), [("34", "229")] * 2)
+        # Overlapping words, or words without line numbers: no space.
+        self.assertNotIn("0020>", tool.text_layer([("a", 100, 200, 60, 20, line),
+                                                   ("b", 150, 200, 60, 20, line)], None))
+        self.assertNotIn("0020>", tool.text_layer([("a", 100, 200, 60, 20),
+                                                   ("b", 200, 200, 60, 20)], None))
+
     def test_parse_tsv(self):
         tsv = ("level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
                "1\t1\t0\t0\t0\t0\t0\t0\t100\t100\t-1\t\n"
+               "4\t1\t1\t1\t1\t0\t10\t18\t50\t44\t-1\t\n"
                "5\t1\t1\t1\t1\t1\t10\t20\t30\t40\t96\tGrüße\n"
                "5\t2\t1\t1\t1\t1\t1\t2\t3\t4\t90\tzwei\n"
                "5\t2\t1\t1\t1\t2\t1\t2\t0\t4\t90\tleer\n"
                "5\t2\t1\t1\t1\t3\t1\t2\t3\t4\t90\t \n")
-        self.assertEqual(tool.parse_tsv(tsv), {1: [("Grüße", 10, 20, 30, 40)],
-                                               2: [("zwei", 1, 2, 3, 4)]})
+        self.assertEqual(tool.parse_tsv(tsv), {
+            1: [("Grüße", 10, 20, 30, 40, (1, 1, 1), (10, 18, 50, 44))],
+            2: [("zwei", 1, 2, 3, 4, (1, 1, 1), None)]})
         with self.assertRaisesRegex(tool.ScanError, "unreadable"):
             tool.parse_tsv("a\tb\n1\t2\n")
 
@@ -1201,7 +1232,7 @@ class OcrTest(unittest.TestCase):
 
     def test_engine_detection(self):
         self.use_engines("ocrmypdf")
-        self.assertEqual([n for n, _p in tool.ocr_engines()], ["ocrmypdf", "tesseract"])
+        self.assertEqual([n for n, _p in tool.ocr_engines()], ["tesseract", "ocrmypdf"])
         self.use_engines("tesseract")
         self.assertEqual([n for n, _p in tool.ocr_engines()], ["tesseract"])
         self.use_engines()
@@ -1229,8 +1260,9 @@ class OcrTest(unittest.TestCase):
 
     def test_resolve(self):
         self.use_engines("ocrmypdf")
-        self.assertEqual(tool.resolve_ocr("auto", None)[::2], ("ocrmypdf", "deu+eng"))
-        self.assertEqual(tool.resolve_ocr("tesseract", "eng")[::2], ("tesseract", "eng"))
+        # Tesseract first: it recognizes pages while scanning.
+        self.assertEqual(tool.resolve_ocr("auto", None)[::2], ("tesseract", "deu+eng"))
+        self.assertEqual(tool.resolve_ocr("ocrmypdf", "eng")[::2], ("ocrmypdf", "eng"))
         with self.assertRaisesRegex(tool.ScanError, r"not installed: fra; installed: deu, eng "
                                                     r"\(e\.g\. 'sudo apt install tesseract-ocr-fra'\)"):
             tool.resolve_ocr("auto", "deu+fra")
@@ -1239,12 +1271,12 @@ class OcrTest(unittest.TestCase):
         with self.assertRaisesRegex(tool.ScanError, "'ocrmypdf' is not installed; available: tesseract"):
             tool.resolve_ocr("ocrmypdf", None)
         self.use_engines()
-        with self.assertRaisesRegex(tool.ScanError, "needs OCRmyPDF or Tesseract"):
+        with self.assertRaisesRegex(tool.ScanError, "needs Tesseract or OCRmyPDF"):
             tool.resolve_ocr("auto", None)
 
     def test_ocrmypdf_keeps_images(self):
         self.use_engines("ocrmypdf")
-        (pages, complete, error), data, _fake = self.scan()
+        (pages, complete, error), data, _fake = self.scan(ocr_engine="ocrmypdf")
         self.assertEqual((pages, error), (2, None))
         self.assertTrue(data.endswith(b"%fake ocrmypdf text layer\n"))
         self.assertEqual(parse_pdf(data[:data.rindex(b"%fake")])["pages"], 2, "original PDF inside")
@@ -1255,15 +1287,21 @@ class OcrTest(unittest.TestCase):
         self.use_engines("tesseract")
         (pages, _c, error), data, _fake = self.scan(mode="bw", ocr_lang="eng")
         self.assertIsNone(error)
-        call = read_log(self.log)[0]
-        files = call[call.index("PAGES") + 1:]
-        self.assertEqual([os.path.basename(f) for f in files], ["page001.tif", "page002.tif"])
-        self.assertEqual(call[3:10], ["-l", "eng", "--dpi", "300", "--psm", "1", "tsv"])
-        # The words go into this tool's own PDF, as invisible text over the scans.
+        calls = read_log(self.log)
+        self.assertEqual(len(calls), 2, "one Tesseract per page")
+        for call in calls:
+            self.assertTrue(call[1].endswith(".tif"), call)
+            self.assertEqual(call[3:10], ["-l", "eng", "--dpi", "300", "--psm", "1", "tsv"])
+        # The words go into this tool's own PDF, as invisible text over the scans,
+        # with a space between words in a line, none at the end of a line.
         self.assertEqual(parse_pdf(data)["pages"], 2)
         self.assertIn(b"/GlyphLessFont", data)
-        for n in (1, 2):
-            self.assertIn("".join(f"{ord(c):04X}" for c in f"eng-page{n}").encode(), data)
+
+        def hex_text(text):
+            return ("<" + "".join(f"{ord(c):04X}" for c in text) + ">").encode()
+
+        self.assertEqual(data.count(hex_text("eng-page ")), 2)
+        self.assertEqual(data.count(hex_text("words")), 2)
         self.assertIn(b"3 Tr", data)
 
     def test_ocr_page_progress_with_tesseract(self):
@@ -1274,38 +1312,137 @@ class OcrTest(unittest.TestCase):
             tool.scan_to_file(args(host=fake.host, model=None, ocr=True), out,
                               on_progress=lambda event, n: events.append((event, n)),
                               select_pages=lambda pages, blank: [0, 1, 3])
-        self.assertEqual(events[-6:], [("saving", 3), ("ocr", 3), ("ocr_page", 0),
-                                       ("ocr_page", 1), ("ocr_page", 2), ("ocr_page", 3)])
-        call = read_log(self.log)[0]
-        self.assertEqual(len(call[call.index("PAGES") + 1:]), 3, "removed page not recognized")
+        ocr = [e for e in events if e[0] in ("ocr", "ocr_page", "saving")]
+        self.assertEqual(ocr[:2], [("ocr", 3), ("ocr_page", ocr[1][1])])
+        self.assertEqual(ocr[-2:], [("ocr_page", 3), ("saving", 3)])
+        page_events = [e for e in events if e[0].startswith("ocr_") and e[0] != "ocr_page"]
+        for n in (1, 2, 3, 4):  # recognized while scanning, before the selection
+            self.assertIn(("ocr_queued", n), page_events)
+        self.assertIn(("ocr_cancelled", 3), page_events, "removed page not needed")
+        for n in (1, 2, 4):
+            self.assertIn(("ocr_done", n), page_events)
+        self.assertNotIn(("ocr_done", 3), page_events[page_events.index(("ocr_cancelled", 3)):])
 
     def test_no_page_progress_with_ocrmypdf(self):
         self.use_engines("ocrmypdf")
         events = []
         with FakeScanner(**ES580W_PROFILE, sheets=1) as fake:
-            tool.scan_to_file(args(host=fake.host, model=None, ocr=True),
+            tool.scan_to_file(args(host=fake.host, model=None, ocr=True, ocr_engine="ocrmypdf"),
                               os.path.join(self.dir.name, "out.pdf"),
                               on_progress=lambda event, n: events.append(event))
-        self.assertEqual(events[-2:], ["saving", "ocr"])
+        self.assertEqual(events[-2:], ["saving", "ocr"], "OCRmyPDF reads the saved PDF")
+        self.assertFalse(any(e.startswith("ocr_") for e in events))
+
+    def test_tesseract_recognizes_while_reviewing(self):
+        self.use_engines("tesseract")
+        seen = []
+
+        def select(pages, infos):
+            # All pages are recognized before the review is decided.
+            deadline = time.monotonic() + 20
+            while len(read_log(self.log)) < 4 and time.monotonic() < deadline:
+                time.sleep(0.05)
+            seen.append(len(read_log(self.log)))
+            return [0, 1, 2, 3]
+
+        with FakeScanner(**ES580W_PROFILE, sheets=2) as fake:
+            tool.scan_to_file(args(host=fake.host, model=None, ocr=True),
+                              os.path.join(self.dir.name, "out.pdf"), select_pages=select)
+        self.assertEqual(seen, [4])
+        self.assertEqual(len(read_log(self.log)), 4, "not recognized again when saving")
+
+    def test_kept_blank_page_recognized_when_saving(self):
+        self.use_engines("tesseract")
+        text, blank = make_jpeg(page(marks=[TEXT_LINE])), make_jpeg(page())
+        events = []
+        with FakeScanner(sheets=1, images=[text, blank]) as fake:
+            tool.scan_to_file(args(host=fake.host, model=None, ocr=True, skip_blank=True,
+                                   resolution=100),
+                              os.path.join(self.dir.name, "out.pdf"),
+                              on_progress=lambda event, n: events.append((event, n)),
+                              select_pages=lambda pages, infos: [0, 1])
+        queued = [e for e in events if e[0] in ("ocr_queued", "ocr")]
+        self.assertEqual(queued, [("ocr_queued", 1), ("ocr_queued", 2), ("ocr", 2)],
+                         "the blank page only once it is kept")
+        self.assertEqual(len(read_log(self.log)), 2)
+
+    def test_pages_recognized_in_parallel(self):
+        path = os.path.join(self.use_engines("tesseract"), "tesseract")
+        os.environ["FAKE_OCR_DELAY"] = "1"
+        self.addCleanup(os.environ.pop, "FAKE_OCR_DELAY", None)
+        ocr = tool.PageOcr(path, "eng", 300, workers=4)
+        self.addCleanup(ocr.close)
+        start = time.monotonic()
+        for n in range(1, 5):
+            ocr.submit(n, JPEG_GRAY)
+        words, error = ocr.results([1, 2, 3, 4])
+        self.assertLess(time.monotonic() - start, 3, "4 pages of 1 s each, 4 at once")
+        self.assertIsNone(error)
+        self.assertEqual([w[0][0] for w in words], ["eng-page"] * 4)
+        self.assertEqual({c[-1] for c in read_log(self.log)}, {"1"}, "one thread per process")
+        single = tool.PageOcr(path, "eng", 300, workers=1)
+        self.addCleanup(single.close)
+        single.submit(1, JPEG_GRAY)
+        single.results([1])
+        self.assertEqual(read_log(self.log)[-1][-1], "", "Tesseract's own threads when alone")
+
+    def test_cancelled_page_stops_tesseract(self):
+        path = os.path.join(self.use_engines("tesseract"), "tesseract")
+        os.environ["FAKE_OCR_DELAY"] = "30"
+        self.addCleanup(os.environ.pop, "FAKE_OCR_DELAY", None)
+        events = []
+        ocr = tool.PageOcr(path, "eng", 300, on_event=lambda e, n: events.append((e, n)),
+                           workers=1)
+        self.addCleanup(ocr.close)
+        ocr.submit(1, JPEG_GRAY)
+        ocr.submit(2, JPEG_GRAY)
+        deadline = time.monotonic() + 10
+        while not read_log(self.log) and time.monotonic() < deadline:
+            time.sleep(0.02)  # until Tesseract runs on page 1
+        start = time.monotonic()
+        ocr.cancel(1)  # running: killed
+        ocr.cancel(2)  # still waiting
+        self.assertEqual(ocr.pages(), set())
+        ocr.env["FAKE_OCR_DELAY"] = "0"
+        ocr.submit(3, JPEG_GRAY)  # needs the only worker, so page 1 must have stopped
+        self.assertIsNone(ocr.results([3])[1])
+        self.assertLess(time.monotonic() - start, 10, "page 1 did not run to its end")
+        self.assertEqual([e for e, n in events if n == 1],
+                         ["ocr_queued", "ocr_started", "ocr_cancelled"])
+        self.assertEqual([e for e, n in events if n == 2], ["ocr_queued", "ocr_cancelled"])
+
+    def test_workers(self):
+        with mock.patch.object(tool.os, "sched_getaffinity", return_value=set(range(16))):
+            self.assertEqual(tool.ocr_workers(), tool.OCR_MAX_WORKERS)
+        with mock.patch.object(tool.os, "sched_getaffinity", return_value={0, 1, 2, 3}):
+            self.assertEqual(tool.ocr_workers(), 3, "one core left for scanning")
+        with mock.patch.object(tool.os, "sched_getaffinity", return_value={0}):
+            self.assertEqual(tool.ocr_workers(), 1)
 
     def test_tesseract_jpeg_pages(self):
         self.use_engines("tesseract")
         self.scan()
-        call = read_log(self.log)[0]
-        self.assertTrue(call[call.index("PAGES") + 1].endswith("page001.jpg"))
+        self.assertTrue(read_log(self.log)[0][1].endswith(".jpg"))
 
     def test_failure_keeps_scan_without_text(self):
         self.use_engines("ocrmypdf")
         os.environ["FAKE_OCR_FAIL"] = "1"
-        (pages, _c, error), data, _fake = self.scan()
+        (pages, _c, error), data, _fake = self.scan(ocr_engine="ocrmypdf")
         self.assertRegex(error, r"text recognition with ocrmypdf failed \(exit 15\): "
                                 r"ERROR - tesseract failed")
         self.assertEqual(parse_pdf(data)["pages"], 2, "scanned PDF kept")
+        # Tesseract fails on a page: the PDF is saved without text.
+        os.unlink(os.path.join(self.dir.name, "out.pdf"))
+        (pages, _c, error), data, _fake = self.scan(ocr_engine="tesseract")
+        self.assertRegex(error, r"text recognition with tesseract failed on page \d \(exit 1\): "
+                                r".*Error opening data file")
+        self.assertEqual(parse_pdf(data)["pages"], 2)
+        self.assertNotIn(b"/GlyphLessFont", data)
 
     def test_missing_engine_fails_before_scanning(self):
         self.use_engines()
         with FakeScanner(sheets=1) as fake:
-            with self.assertRaisesRegex(tool.ScanError, "needs OCRmyPDF or Tesseract"):
+            with self.assertRaisesRegex(tool.ScanError, "needs Tesseract or OCRmyPDF"):
                 tool.scan_to_file(args(host=fake.host, model=None, ocr=True),
                                   os.path.join(self.dir.name, "x.pdf"))
         self.assertNotIn("CreateScanJob", fake.actions())
@@ -1348,7 +1485,7 @@ class OcrTest(unittest.TestCase):
             self.assertIn("OCR engines: none installed", r.stdout)
             r = self.run_cli(fake, "--ocr", "x.pdf")
         self.assertEqual(r.returncode, 1)
-        self.assertIn("text recognition needs OCRmyPDF or Tesseract", r.stderr)
+        self.assertIn("text recognition needs Tesseract or OCRmyPDF", r.stderr)
 
     def test_config_validation(self):
         for text, message in (("[scan]\nocr_engine = abbyy\n", "ocr_engine: expected one of"),

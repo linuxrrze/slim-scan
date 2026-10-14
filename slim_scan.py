@@ -920,10 +920,17 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
       "blank"                    n = number of a page found blank (args.skip_blank)
       "corrected"                n = number of a page with corrections (crop, skew, rotate)
       "all_blank"                n = pages kept because all of them were blank
-      "saving"                   n = pages that will be saved
-      "ocr"                      n = pages to recognize (OCR starts)
-      "ocr_page"                 n = pages recognized so far (Tesseract only, from 0;
-                                 without it, the whole document is recognized at once)
+      "ocr_queued", "ocr_started", "ocr_done", "ocr_failed", "ocr_cancelled"
+                                 n = number of a page that Tesseract recognizes while
+                                 scanning and reviewing (see PageOcr; all but
+                                 "ocr_queued" come from other threads)
+      "ocr"                      n = pages to recognize (OCR starts, or finishes with
+                                 Tesseract: waiting for the pages not done yet)
+      "ocr_page"                 n = pages recognized so far (Tesseract only, from the
+                                 ones already done; without it, OCRmyPDF recognizes
+                                 the whole document at once)
+      "saving"                   n = pages that will be saved (before "ocr" with
+                                 OCRmyPDF, which reads the saved PDF)
     on_page_image(n, image, info) gets each scanned page's JPEG/TIFF data and
     its analyze_page() result: whether it is blank (args.skip_blank) and the
     corrections found (paper "auto", args.deskew, args.auto_rotate).
@@ -960,65 +967,89 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
         analysis.paper = "scanner"
     if hardware["skew"]:
         analysis.deskew = False
-    report("scanning", 0)
-    infos = []
+    # Tesseract recognizes each page right after it is scanned.
+    early = (PageOcr(ocr[1], ocr[2], args.resolution, on_event=report)
+             if ocr and ocr[0] == "tesseract" else None)
+    try:
+        report("scanning", 0)
+        infos = []
 
-    def page_done(n, image):
-        report("page", n)
-        infos.append(analyze_page(image, analysis, args.resolution, osd))
-        if infos[-1]["blank"]:
-            report("blank", n)
-        elif corrections_done(infos[-1]):
-            report("corrected", n)
-        if on_page_image:
-            on_page_image(n, image, infos[-1])
+        def page_done(n, image):
+            report("page", n)
+            infos.append(analyze_page(image, analysis, args.resolution, osd))
+            if infos[-1]["blank"]:
+                report("blank", n)
+            elif corrections_done(infos[-1]):
+                report("corrected", n)
+            if early and not infos[-1]["blank"]:  # a blank page only if it is kept
+                early.submit(n, image)
+            if on_page_image:
+                on_page_image(n, image, infos[-1])
 
-    pages, dpi, complete = run_scan(device, args, caps, on_page=page_done,
-                                    should_stop=should_stop)
-    if select_pages:
-        keep = select_pages(pages, infos)
-        while keep is SCAN_MORE:
-            first = len(pages)
-            report("scanning", first)
-            try:
-                more, _dpi, done = run_scan(
-                    device, args, caps, should_stop=should_stop,
-                    on_page=lambda n, image: page_done(first + n, image))
-            except ScanError as e:  # also stopped: keep what was scanned before
-                del infos[first:]
-                report("more_failed", first)
-                if on_more_failed:
-                    on_more_failed(e)
-            else:
-                pages = pages + more
-                complete = complete and done
+        pages, dpi, complete = run_scan(device, args, caps, on_page=page_done,
+                                        should_stop=should_stop)
+        if select_pages:
             keep = select_pages(pages, infos)
-        if keep is None:
-            raise ScanCancelled("scan discarded")
-        if not keep:
-            raise ScanCancelled("all pages were removed; nothing was saved")
-    elif any(info["blank"] for info in infos):
-        if all(info["blank"] for info in infos):
-            report("all_blank", len(pages))  # rather than saving nothing
-            keep = range(len(pages))
+            while keep is SCAN_MORE:
+                first = len(pages)
+                report("scanning", first)
+                try:
+                    more, _dpi, done = run_scan(
+                        device, args, caps, should_stop=should_stop,
+                        on_page=lambda n, image: page_done(first + n, image))
+                except ScanError as e:  # also stopped: keep what was scanned before
+                    del infos[first:]
+                    for n in early.pages() if early else ():
+                        if n > first:
+                            early.cancel(n)
+                    report("more_failed", first)
+                    if on_more_failed:
+                        on_more_failed(e)
+                else:
+                    pages = pages + more
+                    complete = complete and done
+                keep = select_pages(pages, infos)
+            if keep is None:
+                raise ScanCancelled("scan discarded")
+            if not keep:
+                raise ScanCancelled("all pages were removed; nothing was saved")
+        elif any(info["blank"] for info in infos):
+            if all(info["blank"] for info in infos):
+                report("all_blank", len(pages))  # rather than saving nothing
+                keep = range(len(pages))
+            else:
+                keep = [i for i, info in enumerate(infos) if not info["blank"]]
         else:
-            keep = [i for i, info in enumerate(infos) if not info["blank"]]
-    else:
-        keep = range(len(pages))
-    pages, infos = [pages[i] for i in keep], [infos[i] for i in keep]
-    if callable(out):
-        out = out()
-    report("saving", len(pages))
-    write_pdf(out, pages, dpi, overwrite, pages=infos)
-    ocr_error = None
-    if ocr:
-        report("ocr", len(pages))
-        try:
-            run_ocr(*ocr[:2], out, pages, dpi, ocr[2],
-                    on_page=lambda n: report("ocr_page", n), pages=infos)
-        except ScanError as e:
-            ocr_error = str(e)
-    return len(pages), complete, ocr_error
+            keep = range(len(pages))
+        numbers = [i + 1 for i in keep]
+        pages, infos = [pages[i] for i in keep], [infos[i] for i in keep]
+        words = font = ocr_error = None
+        if early:
+            for n in early.pages() - set(numbers):  # removed: not needed any more
+                early.cancel(n)
+            for n, image in zip(numbers, pages):
+                if n not in early.pages():  # blank pages that are kept
+                    early.submit(n, image)
+            report("ocr", len(pages))
+            words, ocr_error = early.results(numbers, on_count=lambda n: report("ocr_page", n))
+            if ocr_error:
+                words = None
+            else:
+                font = tesseract_font(ocr[1])
+        if callable(out):
+            out = out()
+        report("saving", len(pages))
+        write_pdf(out, pages, dpi, overwrite, pages=infos, words=words, font_file=font)
+        if ocr and not early:
+            report("ocr", len(pages))
+            try:
+                run_ocr(ocr[1], out, ocr[2])
+            except ScanError as e:
+                ocr_error = str(e)
+        return len(pages), complete, ocr_error
+    finally:
+        if early:
+            early.close()
 
 
 def cancel(service, job_id):
@@ -2573,7 +2604,7 @@ def _matrix(m):
     return " ".join(_num(v) for v in m)
 
 
-# Invisible text layer (Tesseract without OCRmyPDF): words are drawn with a
+# Invisible text layer (from Tesseract's words): words are drawn with a
 # glyphless font in text render mode 3, like Tesseract's own PDF output. Codes
 # are Unicode code points (Identity-H), mapped back to text by a ToUnicode CMap.
 TEXT_CMAP = ("/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n"
@@ -2589,7 +2620,13 @@ TEXT_CMAP = ("/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n"
 
 def text_layer(words, info):
     """Content stream operators (in image pixels, y down) for OCR words:
-    [(text, left, top, width, height)] in the scanned image's pixels."""
+    [(text, left, top, width, height[, line, line_box])] in the scanned
+    image's pixels (see parse_tsv).
+
+    Like Tesseract's own PDF output, the words of a line share its baseline
+    and size (from line_box), and a word followed by another one in the same
+    line gets a space, stretched up to the next word: viewers then copy the
+    text with its spaces and line breaks."""
     if not info:
         turn = 0
     elif info.get("turn"):  # turned by hand: that is the reading direction
@@ -2602,21 +2639,36 @@ def text_layer(words, info):
         angle = info["paper"][4] if info and info.get("paper") else 0.0
     phi = math.radians(angle - turn)  # reading direction in the image
     cos, sin = math.cos(phi), math.sin(phi)
+
+    def extent(word):  # where a word starts and ends in reading direction
+        _text, left, top, width, height = word[:5]
+        return {0: (left, left + width), 90: (-top - height, -top),
+                180: (-left - width, -left), 270: (top, top + height)}[turn]
+
     ops = ["BT 3 Tr"]
-    for text, left, top, width, height in words:
+    for i, (text, left, top, width, height, *line) in enumerate(words):
         codes = [ord(ch) if ord(ch) <= 0xFFFF and not 0xD800 <= ord(ch) <= 0xDFFF else 0xFFFD
                  for ch in text]
         if not codes or width <= 0 or height <= 0:
             continue
+        stretch = 0  # how far the space reaches beyond the word
+        if line and i + 1 < len(words) and words[i + 1][5] == line[0]:
+            gap = extent(words[i + 1])[0] - extent(words[i])[1]
+            if gap > 0:
+                codes.append(0x20)
+                stretch = gap
+        # Across the text: the line's box, else the word's.
+        line_box = line[1] if len(line) > 1 and line[1] else (left, top, width, height)
+        line_left, line_top, line_width, line_height = line_box
         if turn == 90:
-            x, y, length, size = left + width, top + height, height, width
+            x, y, length, size = line_left + line_width, top + height, height, line_width
         elif turn == 180:
-            x, y, length, size = left + width, top, width, height
+            x, y, length, size = left + width, line_top, width, line_height
         elif turn == 270:
-            x, y, length, size = left, top, height, width
+            x, y, length, size = line_left, top, height, line_width
         else:
-            x, y, length, size = left, top + height, width, height
-        scale = max(1.0, min(1000.0, 100 * length / (0.5 * size * len(codes))))
+            x, y, length, size = left, line_top + line_height, width, line_height
+        scale = max(1.0, min(1000.0, 100 * (length + stretch) / (0.5 * size * len(codes))))
         ops.append(f"/F1 {_num(size)} Tf {_num(scale)} Tz "
                    f"{_matrix((cos, sin, sin, -cos, x, y))} Tm "
                    f"<{''.join(f'{c:04X}' for c in codes)}> Tj")
@@ -2750,10 +2802,11 @@ def write_pdf(path, images, dpi, overwrite=False, pages=None, words=None, font_f
 
 
 # --- Text recognition (OCR) ----------------------------------------------------
-# Optional post-processing with OCRmyPDF or Tesseract, if installed. Adds an
-# invisible text layer so the PDF becomes searchable.
+# Optional, with Tesseract or OCRmyPDF, if installed. Adds an invisible text
+# layer so the PDF becomes searchable. Tesseract recognizes each page while the
+# next ones are scanned (PageOcr); OCRmyPDF can only start on the saved PDF.
 
-OCR_ENGINES = ("ocrmypdf", "tesseract")  # "auto" picks the first available
+OCR_ENGINES = ("tesseract", "ocrmypdf")  # "auto" picks the first available
 OCR_ENGINE_CHOICES = ("auto",) + OCR_ENGINES
 # Locale language (ISO 639-1) -> Tesseract language code.
 TESSERACT_LANGS = {
@@ -2824,8 +2877,8 @@ def resolve_ocr(engine, lang):
     """Check an OCR request before scanning. Returns (engine_name, path, languages)."""
     available = dict(ocr_engines())
     if not available:
-        die("text recognition needs OCRmyPDF or Tesseract; install one of them "
-            "(e.g. 'sudo apt install ocrmypdf' or 'sudo apt install tesseract-ocr')")
+        die("text recognition needs Tesseract or OCRmyPDF; install one of them "
+            "(e.g. 'sudo apt install tesseract-ocr' or 'sudo apt install ocrmypdf')")
     if engine == "auto":
         engine = next(name for name in OCR_ENGINES if name in available)
     elif engine not in available:
@@ -2856,11 +2909,8 @@ def resolve_osd(args, ocr=None):
     return None
 
 
-TESSERACT_PAGE_LINE = re.compile(r"^Page (\d+)\b")
-
-
-def run_command(cmd, on_line=None):
-    """Run cmd; feed stderr lines to on_line as they come. Returns (code, output)."""
+def run_command(cmd):
+    """Run cmd. Returns (exit code, output lines)."""
     log("+ " + " ".join(cmd))
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -2871,8 +2921,6 @@ def run_command(cmd, on_line=None):
     assert proc.stdout is not None
     for line in proc.stdout:
         lines.append(line.rstrip("\n"))
-        if on_line:
-            on_line(line.strip())
     return proc.wait(), lines
 
 
@@ -2900,86 +2948,229 @@ def tesseract_font(tesseract):
 
 
 def parse_tsv(text):
-    """Words from Tesseract's TSV output: {page number: [(text, left, top, width, height)]}."""
+    """Words from Tesseract's TSV output, in reading order:
+    {page number: [(text, left, top, width, height, line, line_box)]}, where
+    line (block, paragraph, line) tells which words share a line and
+    line_box (left, top, width, height) is that line's box (None if missing)."""
     lines = text.splitlines()
     if not lines:
         return {}
     header = lines[0].split("\t")
     try:
         col = {name: header.index(name) for name in
-               ("level", "page_num", "left", "top", "width", "height", "conf", "text")}
+               ("level", "page_num", "block_num", "par_num", "line_num",
+                "left", "top", "width", "height", "conf", "text")}
     except ValueError:
         die("text recognition gave unreadable results (TSV without the expected columns)")
-    words = {}
+    words, line_boxes = {}, {}
     for line in lines[1:]:
         fields = line.split("\t")
-        if len(fields) < len(header) or fields[col["level"]] != "5":
+        if len(fields) < len(header) or fields[col["level"]] not in ("4", "5"):
             continue
-        word = fields[col["text"]].strip()
         try:
-            box = [int(fields[col[k]]) for k in ("page_num", "left", "top", "width", "height")]
+            box = [int(fields[col[k]]) for k in ("page_num", "left", "top", "width", "height",
+                                                  "block_num", "par_num", "line_num")]
         except ValueError:
             continue
+        key = (box[0], *box[5:])
+        if fields[col["level"]] == "4":
+            line_boxes[key] = tuple(box[1:5])
+            continue
+        word = fields[col["text"]].strip()
         if word and box[3] > 0 and box[4] > 0:
-            words.setdefault(box[0], []).append((word, *box[1:]))
-    return words
+            words.setdefault(box[0], []).append((word, *box[1:5], key[1:]))
+    return {page: [(*word, line_boxes.get((page, *word[5])) or None) for word in page_words]
+            for page, page_words in words.items()}
 
 
-def run_ocr(engine, path, pdf_path, images, dpi, lang, on_page=None, pages=None):
-    """Replace pdf_path by a searchable PDF. Raises ScanError (pdf_path is kept).
-
-    on_page(n) reports recognized pages, starting with 0; only Tesseract
-    reports them ("Page N : file" lines), OCRmyPDF has no per-page progress
-    output.
-    pages: analyze_page() results, so Tesseract's text follows the page
-    corrections (OCRmyPDF reads the already corrected PDF).
-    """
+def run_ocr(path, pdf_path, lang):
+    """Replace pdf_path by a searchable PDF made by OCRmyPDF. Raises ScanError
+    (pdf_path is kept). OCRmyPDF reads the finished, already corrected PDF;
+    Tesseract recognizes pages while scanning instead (see PageOcr)."""
     with tempfile.TemporaryDirectory(prefix="slim-scan-ocr-") as tmp:
         result_pdf = os.path.join(tmp, "out.pdf")
-        if engine == "ocrmypdf":
-            # Plain PDF output keeps the scanned images untouched (no PDF/A conversion).
-            # Absolute paths: a file name starting with "-" must not look like an option.
-            cmd = [path, "-l", lang, "--output-type", "pdf", os.path.abspath(pdf_path), result_pdf]
-        else:
-            # Tesseract builds the PDF itself from the page images.
-            listing = os.path.join(tmp, "pages.txt")
-            names = []
-            for n, data in enumerate(images, 1):
-                name = os.path.join(tmp, f"page{n:03d}.{'tif' if image_kind(data) == 'tiff' else 'jpg'}")
-                with open(name, "wb") as f:
-                    f.write(data)
-                names.append(name)
-            with open(listing, "w", encoding="utf-8") as f:
-                f.write("\n".join(names) + "\n")
-            # Words with their positions (TSV) go into this tool's own PDF, so
-            # the text layer follows the page corrections. With orientation
-            # data, Tesseract also reads pages that are sideways or upside down.
-            psm = "1" if tesseract_osd_available(path) else "3"
-            cmd = [path, listing, result_pdf[:-4], "-l", lang, "--dpi", str(dpi), "--psm", psm, "tsv"]
-        done = []
-
-        def on_line(line):
-            match = TESSERACT_PAGE_LINE.match(line)
-            if match and on_page and engine == "tesseract":
-                done.append(int(match.group(1)))
-                on_page(len(done))
-
-        if on_page and engine == "tesseract":
-            on_page(0)
-        code, output = run_command(cmd, on_line)
-        if engine == "tesseract":
-            result_pdf = result_pdf[:-4] + ".tsv"
+        # Plain PDF output keeps the scanned images untouched (no PDF/A conversion).
+        # Absolute paths: a file name starting with "-" must not look like an option.
+        cmd = [path, "-l", lang, "--output-type", "pdf", os.path.abspath(pdf_path), result_pdf]
+        code, output = run_command(cmd)
         if code != 0 or not os.path.exists(result_pdf):
             details = [clean(line) for line in output if line.strip()][-3:]
-            die(f"text recognition with {engine} failed (exit {code})"
+            die(f"text recognition with ocrmypdf failed (exit {code})"
                 + (": " + " / ".join(details) if details else ""))
         with open(result_pdf, "rb") as f:
             result = f.read()
-        if engine == "tesseract":
-            words = parse_tsv(result.decode("utf-8", "replace"))
-            result = pdf_bytes(images, dpi, pages, [words.get(n, []) for n in range(1, len(images) + 1)],
-                               tesseract_font(path))
         write_file(pdf_path, result, overwrite=True)  # replaces our own file atomically
+
+
+# Tesseract needs about 120 MB per page at 300 dpi; its own threads hardly
+# help (about 7 % on one page), separate processes for separate pages scale
+# almost linearly.
+OCR_MAX_WORKERS = 8
+
+
+def ocr_workers():
+    """Pages to recognize at once: all CPU cores but one (left for scanning,
+    page analysis and the app), at most OCR_MAX_WORKERS."""
+    try:
+        cpus = len(os.sched_getaffinity(0))
+    except AttributeError:  # not on Linux
+        cpus = os.cpu_count() or 1
+    return max(1, min(cpus - 1, OCR_MAX_WORKERS))
+
+
+class PageOcr:
+    """Tesseract on single pages in the background, several at once.
+
+    Pages are recognized while the next ones are scanned and while the pages
+    are reviewed, so saving only waits for the last ones. The words are in
+    the scanned image's pixels: they stay valid whatever corrections are
+    switched, turned or set by hand later, and go into this tool's own PDF.
+
+    on_event(event, n) gets "ocr_queued", "ocr_started", "ocr_done",
+    "ocr_failed" and "ocr_cancelled" with the page number, in the order they
+    happen (so it must not call back into PageOcr); "ocr_started", "ocr_done"
+    and "ocr_failed" come from the worker threads.
+    """
+
+    def __init__(self, path, lang, dpi, on_event=None, workers=None):
+        self.path, self.lang, self.dpi = path, lang, dpi
+        # With orientation data, Tesseract also reads pages that are sideways or upside down.
+        self.psm = "1" if tesseract_osd_available(path) else "3"
+        self.on_event = on_event or (lambda event, n: None)
+        workers = workers or ocr_workers()
+        self.env = dict(os.environ)
+        if workers > 1:  # one thread per process: the processes share the cores
+            self.env["OMP_THREAD_LIMIT"] = "1"
+        self.tmp = tempfile.mkdtemp(prefix="slim-scan-ocr-")
+        self.cond = threading.Condition()
+        self.waiting = collections.deque()
+        self.jobs = {}  # page number -> job
+        self.closed = False
+        self.count = 0
+        for _ in range(workers):
+            threading.Thread(target=self._work, daemon=True).start()
+
+    def submit(self, n, image):
+        """Recognize page n (replaces an earlier job for that number)."""
+        self.cancel(n)
+        with self.cond:
+            self.count += 1
+            job = {"n": n, "image": image, "id": self.count, "state": "queued",
+                   "words": [], "error": None, "proc": None}
+            self.jobs[n] = job
+            self.waiting.append(job)
+            self.cond.notify()
+            self.on_event("ocr_queued", n)
+
+    def cancel(self, n):
+        """Forget page n; stops its Tesseract if it is running."""
+        with self.cond:
+            job = self.jobs.pop(n, None)
+            if not job:
+                return
+            if job["state"] == "queued":
+                self.waiting.remove(job)
+            job["state"] = "cancelled"
+            if job["proc"]:
+                job["proc"].kill()
+            self.on_event("ocr_cancelled", n)
+
+    def pages(self):
+        with self.cond:
+            return set(self.jobs)
+
+    def results(self, numbers, on_count=None):
+        """Wait for these pages. Returns (words per page, error or None);
+        on_count(n) reports how many of them are recognized."""
+        last = None
+        while True:
+            with self.cond:
+                jobs = [self.jobs[n] for n in numbers]
+                finished = sum(job["state"] in ("done", "failed") for job in jobs)
+                if finished < len(jobs) and finished == last:
+                    self.cond.wait(1)
+                    continue
+            if finished != last and on_count:
+                on_count(finished)
+            last = finished
+            if finished == len(jobs):
+                break
+        error = next((job["error"] for job in jobs if job["error"]), None)
+        return [job["words"] for job in jobs], error
+
+    def close(self):
+        """Stop everything (also running Tesseract processes) and clean up."""
+        with self.cond:
+            self.closed = True
+            self.waiting.clear()
+            for job in self.jobs.values():
+                if job["state"] in ("queued", "running"):
+                    job["state"] = "cancelled"
+                if job["proc"]:
+                    job["proc"].kill()
+            self.cond.notify_all()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _work(self):
+        while True:
+            with self.cond:
+                while not self.waiting and not self.closed:
+                    self.cond.wait()
+                if self.closed:
+                    return
+                job = self.waiting.popleft()
+                job["state"] = "running"
+                self.on_event("ocr_started", job["n"])
+            try:
+                words, error = self._recognize(job), None
+            except ScanError as e:
+                words, error = [], str(e)
+            with self.cond:
+                if job["state"] != "running":  # cancelled or closed meanwhile
+                    continue
+                job.update(state="failed" if error else "done", words=words, error=error,
+                           image=None)
+                self.cond.notify_all()
+                self.on_event("ocr_failed" if error else "ocr_done", job["n"])
+
+    def _recognize(self, job):
+        """Run Tesseract on one page: its words, in the image's pixels."""
+        ext = "tif" if image_kind(job["image"]) == "tiff" else "jpg"
+        image = os.path.join(self.tmp, f"page{job['id']}.{ext}")
+        base = os.path.join(self.tmp, f"words{job['id']}")
+        try:
+            with open(image, "wb") as f:
+                f.write(job["image"])
+            cmd = [self.path, image, base, "-l", self.lang, "--dpi", str(self.dpi),
+                   "--psm", self.psm, "tsv"]
+            log("+ " + " ".join(cmd))
+            with self.cond:
+                if job["state"] != "running":
+                    return []
+                try:
+                    job["proc"] = subprocess.Popen(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                        errors="replace", env=self.env)
+                except OSError as e:
+                    die(f"text recognition failed: {e}")
+            output, _ = job["proc"].communicate()
+            code = job["proc"].returncode
+            if job["state"] != "running":
+                return []
+            try:
+                with open(base + ".tsv", encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            except OSError:
+                text = None
+            if code != 0 or text is None:
+                details = [clean(line) for line in output.splitlines() if line.strip()][-3:]
+                die(f"text recognition with tesseract failed on page {job['n']} (exit {code})"
+                    + (": " + " / ".join(details) if details else ""))
+            return parse_tsv(text).get(1, [])
+        finally:
+            for name in (image, base + ".tsv"):
+                if os.path.exists(name):
+                    os.unlink(name)
 
 
 # --- Configuration -----------------------------------------------------------
@@ -3332,10 +3523,11 @@ def parse_args(argv=None):
                    help=f"contrast {EXPOSURE_RANGE[0]}..{EXPOSURE_RANGE[1]} or 'default' "
                         "(experimental; default: %(default)s = scanner default)")
     p.add_argument("--ocr", action=argparse.BooleanOptionalAction, default=cfg["ocr"],
-                   help="recognize text (OCR) so the PDF is searchable; needs OCRmyPDF "
-                        "or Tesseract (default: %(default)s)")
+                   help="recognize text (OCR) so the PDF is searchable; needs Tesseract "
+                        "or OCRmyPDF (default: %(default)s)")
     p.add_argument("--ocr-engine", choices=OCR_ENGINE_CHOICES, default=cfg["ocr_engine"],
-                   help="auto prefers OCRmyPDF over Tesseract (default: %(default)s)")
+                   help="auto prefers Tesseract, which recognizes pages while scanning, over "
+                        "OCRmyPDF, which starts after saving (default: %(default)s)")
     p.add_argument("--ocr-lang", default=cfg["ocr_lang"] or None, metavar="LANGS",
                    help="Tesseract languages, e.g. deu+eng (default: system language + "
                         "English, if installed)")
@@ -3383,7 +3575,7 @@ def show_config(args):
             print(f"  {name}{marks}: {where}" + (f"; {extra}" if extra else ""))
     engines = ocr_engines()
     print("OCR engines: " + (", ".join(f"{name} {tool_version(path)}" for name, path in engines)
-                             or "none installed (install ocrmypdf or tesseract-ocr)"))
+                             or "none installed (install tesseract-ocr or ocrmypdf)"))
     if engines:
         print(f"OCR languages: {', '.join(tesseract_languages()) or '?'} "
               f"(automatic: {default_ocr_languages()})")

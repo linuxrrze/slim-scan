@@ -118,7 +118,7 @@ class GtkTest(unittest.TestCase):
                                             scanform.Choices.unknown(), scanform.OcrStatus([], []))
         self.assertFalse(settings.ocr.get_sensitive())
         self.assertFalse(settings.ocr.get_active(), "configured, but not installed")
-        self.assertIn("Install OCRmyPDF or Tesseract", settings.ocr.get_subtitle() or "")
+        self.assertIn("Install Tesseract or OCRmyPDF", settings.ocr.get_subtitle() or "")
 
     def test_ocr_languages_per_scanner(self):
         from fake_ocr import make_ocr_bin
@@ -429,18 +429,51 @@ class GtkTest(unittest.TestCase):
                         else t.state.get_icon_name() if t.state.get_visible() else None
                         for t in window.tiles]
 
-            window.on_progress("ocr", 4)  # OCRmyPDF: the whole document at once
+            # Tesseract: page by page, while scanning and reviewing.
+            for n in (1, 2, 3, 4):
+                window.on_progress("ocr_queued", n)
+            window.on_progress("ocr_started", 1)
+            window.on_progress("ocr_done", 1)
+            window.on_progress("ocr_started", 2)
+            window.on_progress("ocr_cancelled", 4)  # removed in the review
+            self.assertEqual(states(), ["object-select-symbolic", "running",
+                                        "content-loading-symbolic", None])
+            self.assertEqual(window.tiles[1].activity.get_label(), "Recognizing text…")
+            self.assertEqual(window.tiles[1].spinner.get_tooltip_text(), "Recognizing text…")
+            window.ocr_tiles = window.tiles[:3]
+            window.on_progress("ocr", 3)  # saving waits for the rest
+            window.on_progress("ocr_page", 1)
+            self.assertEqual(states(), ["object-select-symbolic", "running",
+                                        "content-loading-symbolic", None])
+            self.assertEqual(window.progress.get_text(), "Recognizing text: page 2 of 3")
+            # OCRmyPDF: the whole document at once, after saving.
+            for tile in window.tiles:
+                tile.set_ocr_state(None)
+            window.ocr_tiles = []
+            window.on_progress("ocr", 4)
             self.assertEqual(states(), ["running"] * 4)
-            self.assertEqual(window.tiles[0].activity.get_label(), "Recognizing text…")
-            self.assertEqual(window.tiles[0].spinner.get_tooltip_text(), "Recognizing text…")
-            window.on_progress("ocr_page", 0)  # Tesseract: page by page
-            self.assertEqual(states(), ["running"] + ["content-loading-symbolic"] * 3)
-            self.assertEqual(window.progress.get_text(), "Recognizing text: page 1 of 4")
-            window.on_progress("ocr_page", 2)
-            self.assertEqual(states(), ["object-select-symbolic"] * 2
-                             + ["running", "content-loading-symbolic"])
-            self.assertEqual(window.progress.get_text(), "Recognizing text: page 3 of 4")
             window.close()
+
+    def test_pages_recognized_during_review(self):
+        from fake_ocr import make_ocr_bin
+        bin_dir = make_ocr_bin(tempfile.mkdtemp(prefix="slim-scan-gtk-ocr-"), ["tesseract"])
+        old_path = os.environ["PATH"]
+        os.environ.update(PATH=bin_dir, FAKE_OCR_LOG=os.path.join(bin_dir, "log"))
+        try:
+            with FakeScanner(model="ES-580W", sheets=2) as fake:
+                _app, window, out_dir = self.start_app(fake, ocr=True, ocr_lang="eng")
+                window.settings.review.set_active(True)
+                window.on_scan()
+                wait_for(lambda: window.review is not None)
+                # Recognized while the review is open, before saving.
+                wait_for(lambda: all(t.ocr_state == "done" for t in window.tiles))
+                window.finish_review(True)
+                wait_for(lambda: window.cancel_event is None)
+                window.close()
+            with open(os.path.join(out_dir, os.listdir(out_dir)[0]), "rb") as f:
+                self.assertIn(b"/GlyphLessFont", f.read())
+        finally:
+            os.environ["PATH"] = old_path
 
     def test_review_removes_pages_before_saving(self):
         with FakeScanner(model="ES-580W", sheets=2) as fake:

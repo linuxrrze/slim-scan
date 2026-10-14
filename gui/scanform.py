@@ -32,7 +32,7 @@ PAPERS = [("auto", _("Automatic")), ("a4", "A4"), ("a5", "A5"), ("letter", "Lett
 BACKENDS = [("wsd", _("Network (WSD)")), ("sane", "SANE")]
 # Paper size "auto": which of the sheet's edges are cut (slim_scan.CROP_CHOICES).
 CROPS = [("sides", _("Left and right")), ("all", _("All sides"))]
-OCR_ENGINES = [("auto", _("Automatic")), ("ocrmypdf", "OCRmyPDF"), ("tesseract", "Tesseract")]
+OCR_ENGINES = [("auto", _("Automatic")), ("tesseract", "Tesseract"), ("ocrmypdf", "OCRmyPDF")]
 DEFAULT_RESOLUTIONS = [100, 150, 200, 300, 600]
 
 # [gui] section of the shared config file.
@@ -100,8 +100,8 @@ def language_label(code):
 class OcrStatus:
     """Which OCR engines and languages are installed (checked once at startup)."""
 
-    INSTALL_HINT = _("Install OCRmyPDF or Tesseract to enable text recognition, "
-                     "e.g. “sudo apt install ocrmypdf”.")
+    INSTALL_HINT = _("Install Tesseract or OCRmyPDF to enable text recognition, "
+                     "e.g. “sudo apt install tesseract-ocr”.")
 
     OSD_HINT = _("Needs Tesseract with orientation data, e.g. "
                  "“sudo apt install tesseract-ocr-osd”.")
@@ -143,7 +143,7 @@ class OcrStatus:
         return "+".join(code for code, *_rest in choices if code in selected_codes)
 
     def describe(self, engine, lang):
-        """Subtitle of the OCR switch, e.g. 'OCRmyPDF · deu+eng'."""
+        """Subtitle of the OCR switch, e.g. 'Tesseract · deu+eng'."""
         if not self.available:
             return self.INSTALL_HINT
         name = engine if engine in self.engines else self.engines[0]

@@ -46,7 +46,7 @@ export SLIM_SCAN_HOST=192.168.2.13     # or pass --host each time
 ./slim_scan.py -m bw contract.pdf   # black & white: sharp text, small files
 ./slim_scan.py --lossless photo.pdf # color without JPEG compression
 ./slim_scan.py --brightness 200 --contrast 100 faint.pdf
-./slim_scan.py --ocr letter.pdf         # searchable PDF (needs OCRmyPDF or Tesseract)
+./slim_scan.py --ocr letter.pdf         # searchable PDF (needs Tesseract or OCRmyPDF)
 ./slim_scan.py --skip-blank mixed.pdf   # leave out the empty backs of one-sided pages
 ./slim_scan.py -p auto --deskew --auto-rotate receipts.pdf  # any size, straight, upright
 ./slim_scan.py -p letter --outdir ~/Scans
@@ -80,7 +80,7 @@ Defaults below are the built-in ones; the [config file](#configuration-file) can
 | `--device NAME` | the only one | with `--backend sane`: the SANE device, e.g. `epsonds:net:192.168.2.13` |
 | `--hardware-corrections` / `--no-hardware-corrections` | on | with SANE: let the scanner cut (`-p auto`) and straighten (`--deskew`) pages itself, where its backend offers it |
 | `--sane-options='…'` | | with SANE: further `scanimage` options, e.g. `--sane-options='--adf-justification-x=center'` |
-| `--ocr-engine` | `auto` | `auto` (OCRmyPDF if installed, else Tesseract), `ocrmypdf`, `tesseract` |
+| `--ocr-engine` | `auto` | `auto` (Tesseract if installed, else OCRmyPDF), `tesseract`, `ocrmypdf` |
 | `--ocr-lang` | installed languages (see below) | Tesseract languages, e.g. `deu+eng` |
 | `--show-config` | | show the config file location, the effective defaults and the installed OCR engines and languages |
 | `-f/--force` | off | overwrite an existing output file |
@@ -103,15 +103,25 @@ With `--ocr`, the tool adds an invisible text layer to the PDF, so you can searc
 
 | Engine | Install (Debian/Ubuntu) | How it's used |
 |---|---|---|
-| [OCRmyPDF](https://ocrmypdf.readthedocs.io/) (preferred) | `sudo apt install ocrmypdf` | Runs on the finished PDF with `--output-type pdf`. The scanned images stay unchanged; no PDF/A conversion. |
-| [Tesseract](https://tesseract-ocr.github.io/) | `sudo apt install tesseract-ocr` | Builds the searchable PDF directly from the scanned page images. |
+| [Tesseract](https://tesseract-ocr.github.io/) (preferred) | `sudo apt install tesseract-ocr` | Recognizes each page as soon as it is scanned, several pages at once, while the next ones are fed and while you review them. The tool writes the text into its own PDF. |
+| [OCRmyPDF](https://ocrmypdf.readthedocs.io/) | `sudo apt install ocrmypdf` | Runs on the finished PDF with `--output-type pdf`, so it can only start after saving. The scanned images stay unchanged; no PDF/A conversion. |
 
-Other distributions: Fedora `dnf install ocrmypdf` / `tesseract`, Arch `pacman -S ocrmypdf` / `tesseract`.
+Other distributions: Fedora `dnf install tesseract` / `ocrmypdf`, Arch `pacman -S tesseract` / `ocrmypdf`.
+
+**Tesseract, page by page while scanning:** each page goes to its own Tesseract process right after it is scanned, on all CPU cores but one (at most 8 at once, about 120 MB each). Saving then only waits for the pages still in progress. Removed pages are stopped or skipped; blank pages are only recognized if you keep them. Tesseract's words are positioned on the scanned image, so they stay right whatever you change in the review: corrections switched off, pages turned or adjusted by hand. Like Tesseract's own PDF output, the words of a line share its baseline and size and are separated by spaces, so copied text keeps its spaces and line breaks.
+
+Measured with 8 text pages at 300 dpi, arriving at the ES-580W's duplex speed on a 16-core machine: saving took 1.6 s after the last page, instead of 16 s when all pages were recognized after scanning. Tesseract's own threads hardly help on one page (about 7 %); separate pages in separate processes scale almost linearly.
+
+**When OCRmyPDF is still worth choosing** (`--ocr-engine ocrmypdf`, or in the app's preferences): it recognizes text with the same Tesseract, but builds the text layer itself, and that layer is tested against many PDF viewers, also for right-to-left and vertical scripts. Its downsides here:
+- It starts only after the PDF is saved, so the whole recognition time comes after the scan.
+- It works on the corrected pages baked into the PDF, so it can't start earlier: a page changed in the review would have to be recognized again.
+- It starts once per document (a Python program, about 1–2 s to start), and recognizes in parallel only within that run.
+- It reports no progress per page; the app shows the whole document as in progress until it finishes.
 
 - **Languages:** by default, all installed Tesseract languages, with your system language and English first (e.g. `eng+deu` on an English desktop with `tesseract-ocr-deu` installed). With more than 4 installed (e.g. `tesseract-ocr-all`), only the system language and English are used, since every extra language makes recognition slower and less accurate. `--show-config` shows the installed languages and the automatic choice.
 - **Changing the languages:** set `ocr_lang = deu+eng` in the config file (for all scanners in `[scan]`, or per scanner), choose them on a scanner's page in the desktop app's Preferences, or use `--ocr-lang` for a single run. An empty `ocr_lang` means automatic.
 - **Checks before scanning:** if `--ocr` is requested but no engine or a requested language is missing, the tool stops before feeding any paper.
-- **If text recognition fails after scanning:** the PDF is kept without text, a warning explains why, and the exit code is `3`.
+- **If text recognition fails:** the PDF is kept without text, a warning explains why, and the exit code is `3`.
 
 ### Blank pages
 
@@ -265,7 +275,7 @@ python3 -m unittest discover -s tests -v
 
 Standard library only, about 40 seconds. The suite uses two fakes:
 - `tests/fake_wsd.py`: a configurable fake WSD scanner (UDP discovery and SOAP over HTTP on ephemeral localhost ports).
-- `tests/fake_ocr.py`: stand-ins for `ocrmypdf` and `tesseract`.
+- `tests/fake_ocr.py`: stand-ins for `tesseract` and `ocrmypdf`.
 - `tests/fake_sane.py`: a stand-in for `scanimage`, with the real option lists of the ES-580W's `epsonds` and `airscan` backends.
 
 It covers:

@@ -17,7 +17,7 @@
       <li>Lossless scans when JPEG compression is not good enough</li>
       <li>Brightness and contrast, where the scanner supports them</li>
       <li>Only offers the settings your scanner supports</li>
-      <li>Optional text recognition (OCR) with OCRmyPDF or Tesseract</li>
+      <li>Optional text recognition (OCR) with Tesseract, page by page while scanning, or OCRmyPDF</li>
       <li>Page preview; remove single pages before saving</li>
       <li>Optionally removes blank pages, e.g. empty backs</li>
       <li>Finds the paper size, straightens crooked pages and turns them upright</li>

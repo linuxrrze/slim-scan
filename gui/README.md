@@ -73,7 +73,7 @@ tar -xzf scan-to-pdf-<version>.tar.gz && cd scan-to-pdf-<version> && ./install.s
 6. With **Remove blank pages** on and no review, blank pages are left out of the PDF right away: their thumbnails are dimmed and the message after saving says how many were removed. How pages are judged blank is described in [Blank pages](../README.md#blank-pages).
 
    Without review, the corrections are applied as found; the icons on the thumbnails show which. How the paper size, straightening and orientation are found is described in [Paper size, straightening and orientation](../README.md#paper-size-straightening-and-orientation). **Turn pages upright** needs Tesseract with its orientation data (`sudo apt install tesseract-ocr tesseract-ocr-osd`); without it the switch is greyed out.
-7. With text recognition on, the thumbnails show the state of each page: waiting, in progress, done (✓). The counter shows "Recognizing text: page 2 of 4". This per-page counter works with **Tesseract**. **OCRmyPDF** doesn't report single pages, so with it the app shows overall progress only and marks all pages done at the end.
+7. With text recognition on, the thumbnails show the state of each page: waiting, "Recognizing text…" with a spinner, done (✓). With **Tesseract**, each page is recognized right after it is scanned, several at once, so most pages are done before you click Save; saving only waits for the rest ("Recognizing text: page 3 of 4"). **OCRmyPDF** can only start on the saved PDF and doesn't report single pages, so with it all pages show the spinner until it is done.
 
 When the scan is done:
 - A message offers to **Open** the PDF.
@@ -91,16 +91,18 @@ When the scan is done:
 
 ## Text recognition (OCR)
 
-**Recognize text (OCR)** in the Scan settings makes the PDF searchable. The switch only works if [OCRmyPDF](https://ocrmypdf.readthedocs.io/) or [Tesseract](https://tesseract-ocr.github.io/) is installed:
+**Recognize text (OCR)** in the Scan settings makes the PDF searchable. The switch only works if [Tesseract](https://tesseract-ocr.github.io/) or [OCRmyPDF](https://ocrmypdf.readthedocs.io/) is installed:
 
 ```sh
-sudo apt install ocrmypdf            # or: sudo apt install tesseract-ocr
+sudo apt install tesseract-ocr       # or: sudo apt install ocrmypdf
 sudo apt install tesseract-ocr-deu   # more languages, e.g. German
 ```
 
+**Automatic** uses Tesseract, which recognizes pages while you scan and review. OCRmyPDF can be chosen on a scanner's page in **Preferences**; it starts only after saving. See [Text recognition (OCR)](../README.md#text-recognition-ocr) for the differences.
+
 Otherwise it's greyed out, with a hint on how to install them. The app checks for the tools when it starts, so restart it after installing them.
 
-The switch's subtitle shows the engine and languages that will be used, e.g. "OCRmyPDF · eng+deu".
+The switch's subtitle shows the engine and languages that will be used, e.g. "Tesseract · eng+deu".
 
 By default, the app uses all installed languages, with your system language and English first. With more than 4 installed, it uses only the system language and English. To choose yourself, open the scanner's page in **Preferences**, turn off **Choose languages automatically** under Text recognition, and switch the languages on or off. This applies to that scanner, also in the `slim-scan` command. If text recognition fails, the PDF is still saved, without text, and a message explains why.
 
@@ -142,7 +144,7 @@ Every scanner has **its own settings**. Different scanners can be set up differe
   - **Device:** what was found at that address.
   - **Use by default.**
 - **Scan settings:** sides, color, resolution, paper size, lossless, brightness/contrast, text recognition on/off, remove blank pages, straighten pages, the scanner's own corrections (SANE), turn pages upright, review pages. Once the device has answered, only what it supports is offered.
-- **Text recognition (OCR):** engine (Automatic, OCRmyPDF, Tesseract) and languages. **Choose languages automatically** is on by default and shows its current result. Turn it off to pick languages from the installed ones.
+- **Text recognition (OCR):** engine (Automatic, Tesseract, OCRmyPDF) and languages. **Choose languages automatically** is on by default and shows its current result. Turn it off to pick languages from the installed ones.
 - **Saving:** folder, file-name template (`{date}`, `{time}`).
 - **Duplicate** (a copy to configure differently) and **Remove Scanner**.
 
@@ -192,8 +194,8 @@ last_scanner = Office color
 | `brightness`, `contrast` | −1000 … 1000, or `default` | experimental |
 | `outdir` | a folder, or empty | empty: the app uses your Documents folder, the command the current directory |
 | `filename` | template | `{date}` → `2026-10-03`, `{time}` → `14-30-05` |
-| `ocr` | `true`, `false` | recognize text; needs OCRmyPDF or Tesseract |
-| `ocr_engine` | `auto`, `ocrmypdf`, `tesseract` | `auto` prefers OCRmyPDF |
+| `ocr` | `true`, `false` | recognize text; needs Tesseract or OCRmyPDF |
+| `ocr_engine` | `auto`, `tesseract`, `ocrmypdf` | `auto` prefers Tesseract |
 | `ocr_lang` | e.g. `deu+eng`, or empty | empty = automatic: all installed languages (system language and English first); only those two if more than 4 are installed |
 | `skip_blank` | `true`, `false` | remove blank pages (`--skip-blank`); in the app's review step they start unticked |
 | `crop` | `sides`, `all` | paper `auto`: cut only the sheet's left and right edges (the scanner finds start and end), or all four (`--crop`) |

@@ -192,15 +192,15 @@ class OcrStatusTest(unittest.TestCase):
         status = scanform.OcrStatus([], [])
         self.assertFalse(status.available)
         self.assertEqual(status.engine_options(), [("auto", "Automatic")])
-        self.assertIn("sudo apt install ocrmypdf", status.describe("auto", ""))
+        self.assertIn("sudo apt install tesseract-ocr", status.describe("auto", ""))
 
     def test_available(self):
         with mock.patch.dict(os.environ, {"LANG": "de_DE.UTF-8", "LC_ALL": "", "LC_MESSAGES": ""}):
-            status = scanform.OcrStatus(["ocrmypdf", "tesseract"], ["deu", "eng"])
+            status = scanform.OcrStatus(["tesseract", "ocrmypdf"], ["deu", "eng"])
         self.assertEqual(status.default_lang, "deu+eng")
-        self.assertEqual([v for v, _l in status.engine_options()], ["auto", "ocrmypdf", "tesseract"])
-        self.assertEqual(status.describe("auto", ""), "OCRmyPDF · deu+eng")
-        self.assertEqual(status.describe("tesseract", "eng"), "Tesseract · eng")
+        self.assertEqual([v for v, _l in status.engine_options()], ["auto", "tesseract", "ocrmypdf"])
+        self.assertEqual(status.describe("auto", ""), "Tesseract · deu+eng")
+        self.assertEqual(status.describe("ocrmypdf", "eng"), "OCRmyPDF · eng")
 
     def test_configured_engine_missing_falls_back(self):
         status = scanform.OcrStatus(["tesseract"], ["eng"])
