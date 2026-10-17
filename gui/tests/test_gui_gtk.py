@@ -246,6 +246,27 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(slim_scan.load_config(scanner="EPSON ES-580W 2")["mode"], "bw")
             window.close()
 
+    def test_scanner_page_save_button(self):
+        with FakeScanner(model="ES-580W") as fake:
+            slim_scan.save_config({"scanner": "Office"}, scanners={"Office": {"host": fake.host}})
+            app = slim_scan_gui.ScanApp()
+            app.register(None)
+            app.activate()
+            window = app.window
+            assert window is not None
+            prefs = slim_scan_gui.PreferencesDialog(window)
+            prefs.present(window)
+            prefs.open_scanner("Office")
+            page = prefs.open_page
+            page.settings.mode.set_value("bw")
+            page.name_row.set_text("Front desk")
+            page.save_button.emit("clicked")
+            wait_for(lambda: "Front desk" in app.scanners)
+            self.assertIsNone(prefs.get_parent(), "preferences closed")
+            self.assertEqual(list(app.scanners), ["Front desk"])
+            self.assertEqual(slim_scan.load_config(scanner="Front desk")["mode"], "bw")
+            window.close()
+
     def test_add_scanner_by_address(self):
         """Regression: adding by IP address was only a small unlabeled "+" icon."""
         with FakeScanner(model="ES-580W") as fake:

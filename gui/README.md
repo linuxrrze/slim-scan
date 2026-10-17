@@ -147,6 +147,7 @@ Every scanner has **its own settings**. Different scanners can be set up differe
 - **Text recognition (OCR):** engine (Automatic, Tesseract, OCRmyPDF) and languages. **Choose languages automatically** is on by default and shows its current result. Turn it off to pick languages from the installed ones.
 - **Saving:** folder, file-name template (`{date}`, `{time}`). After each saved scan, its folder becomes the folder setting, so the next scan and the next app start use it too.
 - **Duplicate** (a copy to configure differently) and **Remove Scanner**.
+- **Save** (top right) saves the changes and closes the preferences. **Back** keeps the changes for now; they are saved when the preferences close.
 
 With two or more scanners, the main window shows a **Scanner** selector at the top, with the same names as in the preferences. The app remembers the one used last; the `slim-scan` command uses the default scanner (or `--scanner NAME`).
 

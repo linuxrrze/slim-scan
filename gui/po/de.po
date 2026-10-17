@@ -189,7 +189,7 @@ msgstr "Scanner wird gesucht …"
 msgid "Reconnect to the scanner"
 msgstr "Erneut mit dem Scanner verbinden"
 
-#: slim_scan_gui.py:896 slim_scan_gui.py:1791 scanform.py:615 scanform.py:609
+#: slim_scan_gui.py:896 slim_scan_gui.py:1797 scanform.py:615 scanform.py:609
 msgid "Preferences"
 msgstr "Einstellungen"
 
@@ -205,7 +205,7 @@ msgstr "Beenden"
 msgid "Main Menu"
 msgstr "Hauptmenü"
 
-#: slim_scan_gui.py:905 slim_scan_gui.py:909 slim_scan_gui.py:1053 slim_scan_gui.py:1555 slim_scan_gui.py:1747 scanform.py:353 scanform.py:611 scanform.py:320
+#: slim_scan_gui.py:905 slim_scan_gui.py:909 slim_scan_gui.py:1053 slim_scan_gui.py:1555 slim_scan_gui.py:1753 scanform.py:353 scanform.py:611 scanform.py:320
 msgid "Scanner"
 msgstr "Scanner"
 
@@ -237,7 +237,7 @@ msgstr "Legen Sie die Seiten in den Einzug und klicken Sie dann auf „Scannen�
 msgid "Discard Scan"
 msgstr "Scan verwerfen"
 
-#: slim_scan_gui.py:949
+#: slim_scan_gui.py:949 slim_scan_gui.py:1627
 msgid "Save"
 msgstr "Speichern"
 
@@ -393,7 +393,7 @@ msgstr "Weitere SANE-Optionen"
 msgid "Device"
 msgstr "Gerät"
 
-#: slim_scan_gui.py:1572 slim_scan_gui.py:1892
+#: slim_scan_gui.py:1572 slim_scan_gui.py:1898
 msgid "Use by default"
 msgstr "Standardmäßig verwenden"
 
@@ -425,147 +425,151 @@ msgstr "Duplizieren"
 msgid "Remove Scanner"
 msgstr "Scanner entfernen"
 
-#: slim_scan_gui.py:1673
+#: slim_scan_gui.py:1627
+msgid "Save the settings and close"
+msgstr "Einstellungen speichern und schließen"
+
+#: slim_scan_gui.py:1679
 msgid "Further scanimage options for this scanner's SANE backend, e.g. --adf-justification-x=center"
 msgstr "Weitere scanimage-Optionen für das SANE-Backend dieses Scanners, z. B. --adf-justification-x=center"
 
-#: slim_scan_gui.py:1683
+#: slim_scan_gui.py:1689
 msgid "SANE is not installed (package sane-utils)"
 msgstr "SANE ist nicht installiert (Paket sane-utils)"
 
-#: slim_scan_gui.py:1689
+#: slim_scan_gui.py:1695
 msgid "No address: found automatically on the network when scanning"
 msgstr "Keine Adresse: wird beim Scannen automatisch im Netzwerk gesucht"
 
-#: slim_scan_gui.py:1693 slim_scan_gui.py:1923 slim_scan_gui.py:909 slim_scan_gui.py:1054
+#: slim_scan_gui.py:1699 slim_scan_gui.py:1929 slim_scan_gui.py:909 slim_scan_gui.py:1054
 msgid "Searching…"
 msgstr "Suche läuft …"
 
-#: slim_scan_gui.py:1718
+#: slim_scan_gui.py:1724
 msgid "Not found: {error}"
 msgstr "Nicht gefunden: {error}"
 
-#: slim_scan_gui.py:1772
+#: slim_scan_gui.py:1778
 msgid "Remove “{name}”?"
 msgstr "„{name}“ entfernen?"
 
-#: slim_scan_gui.py:1773
+#: slim_scan_gui.py:1779
 msgid "Its settings are deleted. The scanner itself is not affected."
 msgstr "Seine Einstellungen werden gelöscht. Der Scanner selbst bleibt unverändert."
 
-#: slim_scan_gui.py:1774 slim_scan_gui.py:646 slim_scan_gui.py:939
+#: slim_scan_gui.py:1780 slim_scan_gui.py:646 slim_scan_gui.py:939
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: slim_scan_gui.py:1775 slim_scan_gui.py:1898
+#: slim_scan_gui.py:1781 slim_scan_gui.py:1904
 msgid "Remove"
 msgstr "Entfernen"
 
-#: slim_scan_gui.py:1798
+#: slim_scan_gui.py:1804
 msgid "Scanners"
 msgstr "Scanner"
 
-#: slim_scan_gui.py:1799
+#: slim_scan_gui.py:1805
 msgid "Find Scanners"
 msgstr "Scanner suchen"
 
-#: slim_scan_gui.py:1805
+#: slim_scan_gui.py:1811
 msgid "Scanners found"
 msgstr "Gefundene Scanner"
 
-#: slim_scan_gui.py:1808
+#: slim_scan_gui.py:1814
 msgid "After scanning"
 msgstr "Nach dem Scannen"
 
-#: slim_scan_gui.py:1809
+#: slim_scan_gui.py:1815
 msgid "Open PDF after scanning"
 msgstr "PDF nach dem Scannen öffnen"
 
-#: slim_scan_gui.py:1811
+#: slim_scan_gui.py:1817
 msgid "Notify when a scan is done"
 msgstr "Benachrichtigen, wenn ein Scan fertig ist"
 
-#: slim_scan_gui.py:1812
+#: slim_scan_gui.py:1818
 msgid "Only while the window is in the background"
 msgstr "Nur wenn das Fenster im Hintergrund ist"
 
-#: slim_scan_gui.py:1817
+#: slim_scan_gui.py:1823
 msgid "Status bar"
 msgstr "Statusleiste"
 
-#: slim_scan_gui.py:1818
+#: slim_scan_gui.py:1824
 msgid "Show icon in the status bar"
 msgstr "Symbol in der Statusleiste anzeigen"
 
-#: slim_scan_gui.py:1821
+#: slim_scan_gui.py:1827
 msgid "Closing the window keeps Slim Scan running there."
 msgstr "Nach dem Schließen des Fensters läuft Slim Scan dort weiter."
 
-#: slim_scan_gui.py:1824
+#: slim_scan_gui.py:1830
 msgid "Your desktop shows no status bar icons right now. On GNOME, install the “AppIndicator and KStatusNotifierItem Support” extension."
 msgstr "Ihre Arbeitsumgebung zeigt derzeit keine Statusleisten-Symbole an. Installieren Sie unter GNOME die Erweiterung „AppIndicator and KStatusNotifierItem Support“."
 
-#: slim_scan_gui.py:1827
+#: slim_scan_gui.py:1833
 msgid "Start at login"
 msgstr "Bei der Anmeldung starten"
 
-#: slim_scan_gui.py:1828
+#: slim_scan_gui.py:1834
 msgid "In the status bar, without opening the window"
 msgstr "In der Statusleiste, ohne das Fenster zu öffnen"
 
-#: slim_scan_gui.py:1836
+#: slim_scan_gui.py:1842
 msgid "The scanners and their settings are shared with the slim-scan command (--scanner NAME)."
 msgstr "Die Scanner und ihre Einstellungen gelten auch für den Befehl slim-scan (--scanner NAME)."
 
-#: slim_scan_gui.py:1839
+#: slim_scan_gui.py:1845
 msgid "Settings file"
 msgstr "Einstellungsdatei"
 
-#: slim_scan_gui.py:1883
+#: slim_scan_gui.py:1889
 msgid "Each scanner has its own settings. The marked one is used by default."
 msgstr "Jeder Scanner hat eigene Einstellungen. Der markierte wird standardmäßig verwendet."
 
-#: slim_scan_gui.py:1885
+#: slim_scan_gui.py:1891
 msgid "No scanner configured yet. Add one, or let Find Scanners look on the network."
 msgstr "Noch kein Scanner eingerichtet. Fügen Sie einen hinzu oder lassen Sie „Scanner suchen“ im Netzwerk suchen."
 
-#: slim_scan_gui.py:1907
+#: slim_scan_gui.py:1913
 msgid "Add Scanner by Address…"
 msgstr "Scanner per Adresse hinzufügen …"
 
-#: slim_scan_gui.py:1908
+#: slim_scan_gui.py:1914
 msgid "If it is not found on the network"
 msgstr "Falls er im Netzwerk nicht gefunden wird"
 
-#: slim_scan_gui.py:1938
+#: slim_scan_gui.py:1944
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: slim_scan_gui.py:1948
+#: slim_scan_gui.py:1954
 msgid "No scanner found"
 msgstr "Kein Scanner gefunden"
 
-#: slim_scan_gui.py:1958 slim_scan_gui.py:1938
+#: slim_scan_gui.py:1964 slim_scan_gui.py:1944
 msgid "Add Again"
 msgstr "Erneut hinzufügen"
 
-#: slim_scan_gui.py:1976
+#: slim_scan_gui.py:1982
 msgid "Could not save the preferences: {error}"
 msgstr "Die Einstellungen konnten nicht gespeichert werden: {error}"
 
-#: slim_scan_gui.py:1991
+#: slim_scan_gui.py:1997
 msgid "Start in the status bar without opening the window"
 msgstr "In der Statusleiste starten, ohne das Fenster zu öffnen"
 
-#: slim_scan_gui.py:2053
+#: slim_scan_gui.py:2059
 msgid "The settings file could not be read and is ignored until you save the preferences:\n{error}"
 msgstr "Die Einstellungsdatei konnte nicht gelesen werden und wird ignoriert, bis Sie die Einstellungen speichern:\n{error}"
 
-#: slim_scan_gui.py:2206
+#: slim_scan_gui.py:2212
 msgid "Scan documents from WSD network scanners into PDF files."
 msgstr "Dokumente von WSD-Netzwerkscannern als PDF-Dateien scannen."
 
-#: slim_scan_gui.py:2219
+#: slim_scan_gui.py:2225
 msgid "Scan finished"
 msgstr "Scan abgeschlossen"
 

@@ -1623,8 +1623,14 @@ class ScannerPage(Adw.NavigationPage):
             actions.add(box)
             page.add(actions)
 
+        # Save replaces the close button: closing the preferences saves them.
+        self.save_button = Gtk.Button(label=_("Save"), tooltip_text=_("Save the settings and close"))
+        self.save_button.add_css_class("suggested-action")
+        self.save_button.connect("clicked", lambda *_a: self.prefs.close())
+        header = Adw.HeaderBar(show_end_title_buttons=False)
+        header.pack_end(self.save_button)
         view = Adw.ToolbarView(content=page)
-        view.add_top_bar(Adw.HeaderBar())
+        view.add_top_bar(header)
         self.set_child(view)
         self.connect("hiding", lambda *_a: self.apply())
         if not name:
