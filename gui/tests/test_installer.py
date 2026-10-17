@@ -3,7 +3,6 @@
 import configparser
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 
