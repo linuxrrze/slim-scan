@@ -445,6 +445,21 @@ def progress_text(event, pages, total=0):
     return ""
 
 
+def saved_text(pages, name, complete=True, blank=0):
+    """The message after saving a scan; blank = blank pages removed."""
+    if not complete:
+        return ngettext("Scan stopped early; saved {pages} page as “{name}”",
+                        "Scan stopped early; saved {pages} pages as “{name}”",
+                        pages).format(pages=pages, name=name)
+    saved = ngettext("Saved {pages} page as “{name}”", "Saved {pages} pages as “{name}”",
+                     pages).format(pages=pages, name=name)
+    if not blank:
+        return saved
+    removed = ngettext("removed {blank} blank page", "removed {blank} blank pages",
+                       blank).format(blank=blank)
+    return _("{saved}, {removed}").format(saved=saved, removed=removed)
+
+
 def pages_summary(scanned, kept=None):
     """Header of the page preview, e.g. '4 pages' or '3 of 4 pages kept'."""
     if kept is None or kept == scanned:

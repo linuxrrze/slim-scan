@@ -1379,14 +1379,8 @@ class MainWindow(Adw.ApplicationWindow):
             for tile in self.ocr_tiles:
                 tile.set_ocr_state(None)
         name = os.path.basename(out)
-        if complete and self.blank_pages and not self.scan_reviewed:
-            message = _("Saved {pages} pages as “{name}”, removed {blank} blank pages").format(
-                pages=pages, name=name, blank=self.blank_pages)
-        elif complete:
-            message = _("Saved {pages} pages as “{name}”").format(pages=pages, name=name)
-        else:
-            message = _("Scan stopped early; saved {pages} pages as “{name}”").format(
-                pages=pages, name=name)
+        message = scanform.saved_text(pages, name, complete,
+                                      0 if self.scan_reviewed else self.blank_pages)
         toast = Adw.Toast(button_label=_("Open"), action_name="app.open-file",
                           action_target=GLib.Variant("s", out), timeout=8)
         # A toast cuts a long title off, and the file name and (in German) the
