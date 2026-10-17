@@ -30,7 +30,8 @@ try:
     gi.require_version("Adw", "1")
     gi.require_version("GdkPixbuf", "2.0")
     gi.require_version("Graphene", "1.0")
-    from gi.repository import Adw, Gdk, GdkPixbuf, Gio, GLib, GObject, Graphene, Gtk
+    gi.require_version("Pango", "1.0")
+    from gi.repository import Adw, Gdk, GdkPixbuf, Gio, GLib, GObject, Graphene, Gtk, Pango
 except (ImportError, ValueError) as e:
     sys.exit(f"Slim Scan needs GTK 4 and libadwaita for Python ({e}).\n"
              "Debian/Ubuntu: sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1\n"
@@ -321,6 +322,18 @@ class FolderRow(Adw.ActionRow):
     def set_folder(self, folder):
         self.folder = folder
         self.set_subtitle(scanform.display_path(folder))
+
+
+def button_row(*buttons, **props):
+    """Buttons side by side, or below each other if a long translation or a
+    narrow window leaves too little room."""
+    box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True,
+                      max_children_per_line=len(buttons), column_spacing=12, row_spacing=12,
+                      halign=Gtk.Align.CENTER, **props)
+    for button in buttons:
+        box.append(button)
+        button.get_parent().set_focusable(False)  # only the button takes the focus
+    return box
 
 
 def make_thumbnail(data, info=None):
@@ -1374,8 +1387,23 @@ class MainWindow(Adw.ApplicationWindow):
         else:
             message = _("Scan stopped early; saved {pages} pages as “{name}”").format(
                 pages=pages, name=name)
-        toast = Adw.Toast(use_markup=False, title=message, button_label=_("Open"), action_name="app.open-file",
+        toast = Adw.Toast(button_label=_("Open"), action_name="app.open-file",
                           action_target=GLib.Variant("s", out), timeout=8)
+        # A toast cuts a long title off, and the file name and (in German) the
+        # verb come last: wrap it instead. The room is what a toast leaves its
+        # (bold) title besides Open and close; the line length keeps Open
+        # readable (measured: 18 characters in a 360 px window, 44 in 520 px).
+        layout = self.create_pango_layout(message)
+        bold = Pango.AttrList()
+        bold.insert(Pango.attr_weight_new(Pango.Weight.BOLD))
+        layout.set_attributes(bold)
+        if layout.get_pixel_size()[0] <= self.get_width() - 185:
+            toast.set_use_markup(False)
+            toast.set_title(message)
+        else:
+            toast.set_custom_title(Gtk.Label(
+                label=message, wrap=True, use_markup=False, css_classes=["heading"],
+                max_width_chars=max(18, (self.get_width() - 216) // 8)))
         self.app.saved_files.add(out)
         self.remember_folder(os.path.dirname(out))
         self.toasts.add_toast(toast)
@@ -1458,10 +1486,8 @@ class ScanSettingsDialog(Adw.Dialog):
         save = Gtk.Button(label=_("Save for This Scanner") if window.app.config["scanner"]
                           else _("Save as Defaults"))
         save.connect("clicked", self._save_defaults)
-        buttons = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER, margin_top=12,
-                          margin_bottom=12, margin_start=12, margin_end=12)
-        buttons.append(reset)
-        buttons.append(save)
+        buttons = button_row(reset, save, margin_top=12, margin_bottom=12,
+                             margin_start=12, margin_end=12)
 
         self.toasts = Adw.ToastOverlay(child=page)
         view = Adw.ToolbarView(content=self.toasts)
@@ -1610,7 +1636,6 @@ class ScannerPage(Adw.NavigationPage):
             page.add(group)
         if name:
             actions = Adw.PreferencesGroup()
-            box = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER)
             duplicate = Gtk.Button(label=_("Duplicate"))
             duplicate.add_css_class("pill")
             duplicate.connect("clicked", self._duplicate)
@@ -1618,9 +1643,7 @@ class ScannerPage(Adw.NavigationPage):
             remove.add_css_class("pill")
             remove.add_css_class("destructive-action")
             remove.connect("clicked", self._confirm_remove)
-            box.append(duplicate)
-            box.append(remove)
-            actions.add(box)
+            actions.add(button_row(duplicate, remove))
             page.add(actions)
 
         # Save replaces the close button: closing the preferences saves them.

@@ -8,568 +8,568 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: slim_scan_gui.py:136
+#: slim_scan_gui.py:137
 msgid "Sides"
 msgstr "Seiten"
 
-#: slim_scan_gui.py:137
+#: slim_scan_gui.py:138
 msgctxt "setting"
 msgid "Color"
 msgstr "Farbmodus"
 
-#: slim_scan_gui.py:138
+#: slim_scan_gui.py:139
 msgid "Resolution"
 msgstr "Auflösung"
 
-#: slim_scan_gui.py:140
+#: slim_scan_gui.py:141
 msgid "Paper size"
 msgstr "Papierformat"
 
-#: slim_scan_gui.py:141
+#: slim_scan_gui.py:142
 msgid "Cut to the sheet"
 msgstr "Auf das Blatt zuschneiden"
 
-#: slim_scan_gui.py:142
+#: slim_scan_gui.py:143
 msgid "Straightened pages are always cut on all sides"
 msgstr "Gerade ausgerichtete Seiten werden immer an allen Seiten zugeschnitten"
 
-#: slim_scan_gui.py:143
+#: slim_scan_gui.py:144
 msgid "Lossless"
 msgstr "Verlustfrei"
 
-#: slim_scan_gui.py:144
+#: slim_scan_gui.py:145
 msgid "Adjust brightness and contrast"
 msgstr "Helligkeit und Kontrast anpassen"
 
-#: slim_scan_gui.py:145
+#: slim_scan_gui.py:146
 msgid "Experimental; off = scanner default"
 msgstr "Experimentell; aus = Vorgabe des Scanners"
 
-#: slim_scan_gui.py:149
+#: slim_scan_gui.py:150
 msgid "Brightness"
 msgstr "Helligkeit"
 
-#: slim_scan_gui.py:153
+#: slim_scan_gui.py:154
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: slim_scan_gui.py:158
+#: slim_scan_gui.py:159
 msgid "Recognize text (OCR)"
 msgstr "Text erkennen (OCR)"
 
-#: slim_scan_gui.py:161
+#: slim_scan_gui.py:162
 msgid "Remove blank pages"
 msgstr "Leere Seiten entfernen"
 
-#: slim_scan_gui.py:162
+#: slim_scan_gui.py:163
 msgid "For example the empty backs of one-sided pages"
 msgstr "Zum Beispiel die leeren Rückseiten einseitig bedruckter Blätter"
 
-#: slim_scan_gui.py:165
+#: slim_scan_gui.py:166
 msgid "Straighten pages"
 msgstr "Seiten gerade ausrichten"
 
-#: slim_scan_gui.py:166
+#: slim_scan_gui.py:167
 msgid "Pages fed in crooked; works best with automatic paper size"
 msgstr "Schief eingezogene Seiten; am besten mit automatischem Papierformat"
 
-#: slim_scan_gui.py:169
+#: slim_scan_gui.py:170
 msgid "Scanner's own corrections"
 msgstr "Korrekturen durch den Scanner"
 
-#: slim_scan_gui.py:171
+#: slim_scan_gui.py:172
 msgid "Turn pages upright"
 msgstr "Seiten aufrecht drehen"
 
-#: slim_scan_gui.py:174
+#: slim_scan_gui.py:175
 msgid "Review pages before saving"
 msgstr "Seiten vor dem Speichern prüfen"
 
-#: slim_scan_gui.py:175
+#: slim_scan_gui.py:176
 msgid "Remove single pages before saving and text recognition"
 msgstr "Einzelne Seiten vor dem Speichern und der Texterkennung entfernen"
 
-#: slim_scan_gui.py:195
+#: slim_scan_gui.py:196
 msgid "The scanner cuts and straightens pages itself"
 msgstr "Der Scanner schneidet die Seiten selbst zu und richtet sie gerade aus"
 
-#: slim_scan_gui.py:196
+#: slim_scan_gui.py:197
 msgid "The scanner cuts pages itself"
 msgstr "Der Scanner schneidet die Seiten selbst zu"
 
-#: slim_scan_gui.py:197
+#: slim_scan_gui.py:198
 msgid "The scanner straightens pages itself"
 msgstr "Der Scanner richtet die Seiten selbst gerade aus"
 
-#: slim_scan_gui.py:231
+#: slim_scan_gui.py:232
 msgid "Pages that are sideways or upside down"
 msgstr "Seiten, die quer liegen oder auf dem Kopf stehen"
 
-#: slim_scan_gui.py:302
+#: slim_scan_gui.py:303
 msgid "Choose folder"
 msgstr "Ordner wählen"
 
-#: slim_scan_gui.py:309
+#: slim_scan_gui.py:310
 msgid "Save scans in"
 msgstr "Scans speichern in"
 
-#: slim_scan_gui.py:596
+#: slim_scan_gui.py:609
 msgid "Adjust Page {n}"
 msgstr "Seite {n} anpassen"
 
-#: slim_scan_gui.py:612
+#: slim_scan_gui.py:625
 msgid "Straighten by this angle (clockwise tilt in the scan)"
 msgstr "Um diesen Winkel gerade ausrichten (Neigung im Scan, im Uhrzeigersinn)"
 
-#: slim_scan_gui.py:617 slim_scan_gui.py:739
+#: slim_scan_gui.py:630 slim_scan_gui.py:752
 msgid "Turn left"
 msgstr "Nach links drehen"
 
-#: slim_scan_gui.py:620 slim_scan_gui.py:739
+#: slim_scan_gui.py:633 slim_scan_gui.py:752
 msgid "Turn right"
 msgstr "Nach rechts drehen"
 
-#: slim_scan_gui.py:622 scanform.py:30 scanform.py:35
+#: slim_scan_gui.py:635 scanform.py:30 scanform.py:35
 msgid "Automatic"
 msgstr "Automatisch"
 
-#: slim_scan_gui.py:622
+#: slim_scan_gui.py:635
 msgid "Back to the values found"
 msgstr "Zurück zu den gefundenen Werten"
 
-#: slim_scan_gui.py:626
+#: slim_scan_gui.py:639
 msgid "Angle"
 msgstr "Winkel"
 
-#: slim_scan_gui.py:638
+#: slim_scan_gui.py:651
 msgid "Drag the red frame's edges to set the page, or the frame to move it."
 msgstr "Ziehen Sie die Kanten des roten Rahmens, um die Seite festzulegen, oder den Rahmen, um ihn zu verschieben."
 
-#: slim_scan_gui.py:648
+#: slim_scan_gui.py:661
 msgid "Apply"
 msgstr "Übernehmen"
 
-#: slim_scan_gui.py:677
+#: slim_scan_gui.py:690
 msgid "{w} × {h} mm"
 msgstr "{w} × {h} mm"
 
-#: slim_scan_gui.py:749
+#: slim_scan_gui.py:762
 msgid "Keep this page"
 msgstr "Diese Seite behalten"
 
-#: slim_scan_gui.py:755 slim_scan_gui.py:765 scanform.py:438
+#: slim_scan_gui.py:768 slim_scan_gui.py:778 scanform.py:438
 msgid "Recognizing text…"
 msgstr "Text wird erkannt …"
 
-#: slim_scan_gui.py:763
+#: slim_scan_gui.py:776
 msgid "Page {n}"
 msgstr "Seite {n}"
 
-#: slim_scan_gui.py:843
+#: slim_scan_gui.py:856
 msgid "Blank page"
 msgstr "Leere Seite"
 
-#: slim_scan_gui.py:845
+#: slim_scan_gui.py:858
 msgid "Double-click to adjust the page"
 msgstr "Doppelklick, um die Seite anzupassen"
 
-#: slim_scan_gui.py:867
+#: slim_scan_gui.py:880
 msgid "Text recognized"
 msgstr "Text erkannt"
 
-#: slim_scan_gui.py:870
+#: slim_scan_gui.py:883
 msgid "Waiting for text recognition"
 msgstr "Wartet auf die Texterkennung"
 
-#: slim_scan_gui.py:890 slim_scan_gui.py:1055
+#: slim_scan_gui.py:903 slim_scan_gui.py:1068
 msgid "Looking for the scanner…"
 msgstr "Scanner wird gesucht …"
 
-#: slim_scan_gui.py:892
+#: slim_scan_gui.py:905
 msgid "Reconnect to the scanner"
 msgstr "Erneut mit dem Scanner verbinden"
 
-#: slim_scan_gui.py:896 slim_scan_gui.py:1797 scanform.py:615 scanform.py:609
+#: slim_scan_gui.py:909 slim_scan_gui.py:1820 scanform.py:615 scanform.py:609
 msgid "Preferences"
 msgstr "Einstellungen"
 
-#: slim_scan_gui.py:897
+#: slim_scan_gui.py:910
 msgid "About Slim Scan"
 msgstr "Info zu Slim Scan"
 
-#: slim_scan_gui.py:898 scanform.py:462
+#: slim_scan_gui.py:911 scanform.py:462
 msgid "Quit"
 msgstr "Beenden"
 
-#: slim_scan_gui.py:900
+#: slim_scan_gui.py:913
 msgid "Main Menu"
 msgstr "Hauptmenü"
 
-#: slim_scan_gui.py:905 slim_scan_gui.py:909 slim_scan_gui.py:1053 slim_scan_gui.py:1555 slim_scan_gui.py:1753 scanform.py:353 scanform.py:611 scanform.py:320
+#: slim_scan_gui.py:918 slim_scan_gui.py:922 slim_scan_gui.py:1066 slim_scan_gui.py:1581 slim_scan_gui.py:1776 scanform.py:353 scanform.py:611 scanform.py:320
 msgid "Scanner"
 msgstr "Scanner"
 
-#: slim_scan_gui.py:919 slim_scan_gui.py:1601
+#: slim_scan_gui.py:932 slim_scan_gui.py:1627
 msgid "File name"
 msgstr "Dateiname"
 
-#: slim_scan_gui.py:921 slim_scan_gui.py:1599
+#: slim_scan_gui.py:934 slim_scan_gui.py:1625
 msgid "Folder"
 msgstr "Ordner"
 
-#: slim_scan_gui.py:924 slim_scan_gui.py:1586
+#: slim_scan_gui.py:937 slim_scan_gui.py:1612
 msgid "Scan settings"
 msgstr "Scan-Einstellungen"
 
-#: slim_scan_gui.py:927
+#: slim_scan_gui.py:940
 msgid "Document"
 msgstr "Dokument"
 
-#: slim_scan_gui.py:935 scanform.py:460
+#: slim_scan_gui.py:948 scanform.py:460
 msgid "Scan"
 msgstr "Scannen"
 
-#: slim_scan_gui.py:943
+#: slim_scan_gui.py:956
 msgid "Put your pages in the document feeder, then click Scan."
 msgstr "Legen Sie die Seiten in den Einzug und klicken Sie dann auf „Scannen“."
 
-#: slim_scan_gui.py:946
+#: slim_scan_gui.py:959
 msgid "Discard Scan"
 msgstr "Scan verwerfen"
 
-#: slim_scan_gui.py:949 slim_scan_gui.py:1627
+#: slim_scan_gui.py:962 slim_scan_gui.py:1650
 msgid "Save"
 msgstr "Speichern"
 
-#: slim_scan_gui.py:974
+#: slim_scan_gui.py:987
 msgid "Pages"
 msgstr "Seiten"
 
-#: slim_scan_gui.py:1056
+#: slim_scan_gui.py:1069
 msgid "Looking for scanners on the network…"
 msgstr "Scanner im Netzwerk werden gesucht …"
 
-#: slim_scan_gui.py:1148
+#: slim_scan_gui.py:1161
 msgid "Ready"
 msgstr "Bereit"
 
-#: slim_scan_gui.py:1230
+#: slim_scan_gui.py:1243
 msgid "Scan cancelled; the pages scanned before are kept"
 msgstr "Scan abgebrochen; die zuvor gescannten Seiten bleiben erhalten"
 
-#: slim_scan_gui.py:1280
+#: slim_scan_gui.py:1293
 msgid "Cannot use the folder: {error}"
 msgstr "Der Ordner kann nicht verwendet werden: {error}"
 
-#: slim_scan_gui.py:1330
+#: slim_scan_gui.py:1343
 msgid "Cannot use the folder {folder}: {error}"
 msgstr "Der Ordner {folder} kann nicht verwendet werden: {error}"
 
-#: slim_scan_gui.py:1355
+#: slim_scan_gui.py:1368
 msgid "Cancelling after the current page…"
 msgstr "Abbruch nach der aktuellen Seite …"
 
-#: slim_scan_gui.py:1370
+#: slim_scan_gui.py:1383
 msgid "Saved {pages} pages as “{name}”, removed {blank} blank pages"
 msgstr "{pages} Seiten als „{name}“ gespeichert, {blank} leere Seiten entfernt"
 
-#: slim_scan_gui.py:1373
+#: slim_scan_gui.py:1386
 msgid "Saved {pages} pages as “{name}”"
 msgstr "{pages} Seiten als „{name}“ gespeichert"
 
-#: slim_scan_gui.py:1375
+#: slim_scan_gui.py:1388
 msgid "Scan stopped early; saved {pages} pages as “{name}”"
 msgstr "Scan vorzeitig beendet; {pages} Seiten als „{name}“ gespeichert"
 
-#: slim_scan_gui.py:1377
+#: slim_scan_gui.py:1390
 msgid "Open"
 msgstr "Öffnen"
 
-#: slim_scan_gui.py:1385
+#: slim_scan_gui.py:1413
 msgid "{error}\n\nThe scan was saved without recognized text."
 msgstr "{error}\n\nDer Scan wurde ohne erkannten Text gespeichert."
 
-#: slim_scan_gui.py:1386
+#: slim_scan_gui.py:1414
 msgid "Text recognition failed"
 msgstr "Texterkennung fehlgeschlagen"
 
-#: slim_scan_gui.py:1414
+#: slim_scan_gui.py:1442
 msgid "Scan discarded"
 msgstr "Scan verworfen"
 
-#: slim_scan_gui.py:1416
+#: slim_scan_gui.py:1444
 msgid "Scan cancelled"
 msgstr "Scan abgebrochen"
 
-#: slim_scan_gui.py:1421
+#: slim_scan_gui.py:1449
 msgid "Scanning failed"
 msgstr "Scannen fehlgeschlagen"
 
-#: slim_scan_gui.py:1422
+#: slim_scan_gui.py:1450
 msgid "OK"
 msgstr "OK"
 
-#: slim_scan_gui.py:1446
+#: slim_scan_gui.py:1474
 msgid "Scan Settings"
 msgstr "Scan-Einstellungen"
 
-#: slim_scan_gui.py:1449
+#: slim_scan_gui.py:1477
 msgid "These settings apply to your next scans. Only options your scanner supports are offered."
 msgstr "Diese Einstellungen gelten für Ihre nächsten Scans. Angeboten wird nur, was Ihr Scanner unterstützt."
 
-#: slim_scan_gui.py:1456
+#: slim_scan_gui.py:1484
 msgid "Reset to Defaults"
 msgstr "Auf Vorgaben zurücksetzen"
 
-#: slim_scan_gui.py:1458
+#: slim_scan_gui.py:1486
 msgid "Save for This Scanner"
 msgstr "Für diesen Scanner speichern"
 
-#: slim_scan_gui.py:1459
+#: slim_scan_gui.py:1487
 msgid "Save as Defaults"
 msgstr "Als Vorgabe speichern"
 
-#: slim_scan_gui.py:1475
+#: slim_scan_gui.py:1501
 msgid "Defaults restored"
 msgstr "Vorgaben wiederhergestellt"
 
-#: slim_scan_gui.py:1481
+#: slim_scan_gui.py:1507
 msgid "Could not save the defaults: {error}"
 msgstr "Die Vorgaben konnten nicht gespeichert werden: {error}"
 
-#: slim_scan_gui.py:1483
+#: slim_scan_gui.py:1509
 msgid "Saved as defaults of “{name}”"
 msgstr "Als Vorgaben für „{name}“ gespeichert"
 
-#: slim_scan_gui.py:1485
+#: slim_scan_gui.py:1511
 msgid "Saved as defaults"
 msgstr "Als Vorgaben gespeichert"
 
-#: slim_scan_gui.py:1499
+#: slim_scan_gui.py:1525
 msgid "Engine"
 msgstr "Programm"
 
-#: slim_scan_gui.py:1501
+#: slim_scan_gui.py:1527
 msgid "Choose languages automatically"
 msgstr "Sprachen automatisch wählen"
 
-#: slim_scan_gui.py:1502
+#: slim_scan_gui.py:1528
 msgid "Currently: {langs}"
 msgstr "Derzeit: {langs}"
 
-#: slim_scan_gui.py:1508
+#: slim_scan_gui.py:1534
 msgid "Not installed"
 msgstr "Nicht installiert"
 
-#: slim_scan_gui.py:1510
+#: slim_scan_gui.py:1536
 msgid "More languages come as packages, e.g. “tesseract-ocr-fra” for French."
 msgstr "Weitere Sprachen gibt es als Pakete, z. B. „tesseract-ocr-fra“ für Französisch."
 
-#: slim_scan_gui.py:1543
+#: slim_scan_gui.py:1569
 msgid "New Scanner"
 msgstr "Neuer Scanner"
 
-#: slim_scan_gui.py:1556
+#: slim_scan_gui.py:1582
 msgid "Name"
 msgstr "Name"
 
-#: slim_scan_gui.py:1558
+#: slim_scan_gui.py:1584
 msgid "Connection"
 msgstr "Verbindung"
 
-#: slim_scan_gui.py:1560
+#: slim_scan_gui.py:1586
 msgid "IP address or host name"
 msgstr "IP-Adresse oder Rechnername"
 
-#: slim_scan_gui.py:1563
+#: slim_scan_gui.py:1589
 msgid "SANE device"
 msgstr "SANE-Gerät"
 
-#: slim_scan_gui.py:1566
+#: slim_scan_gui.py:1592
 msgid "Extra SANE options"
 msgstr "Weitere SANE-Optionen"
 
-#: slim_scan_gui.py:1570
+#: slim_scan_gui.py:1596
 msgid "Device"
 msgstr "Gerät"
 
-#: slim_scan_gui.py:1572 slim_scan_gui.py:1898
+#: slim_scan_gui.py:1598 slim_scan_gui.py:1921
 msgid "Use by default"
 msgstr "Standardmäßig verwenden"
 
-#: slim_scan_gui.py:1576
+#: slim_scan_gui.py:1602
 msgid "To change, make another scanner the default"
 msgstr "Zum Ändern einen anderen Scanner als Standard festlegen"
 
-#: slim_scan_gui.py:1587
+#: slim_scan_gui.py:1613
 msgid "Used for every scan with this scanner."
 msgstr "Gilt für jeden Scan mit diesem Scanner."
 
-#: slim_scan_gui.py:1593
+#: slim_scan_gui.py:1619
 msgid "Text recognition (OCR)"
 msgstr "Texterkennung (OCR)"
 
-#: slim_scan_gui.py:1598
+#: slim_scan_gui.py:1624
 msgid "Saving"
 msgstr "Speichern"
 
-#: slim_scan_gui.py:1603
+#: slim_scan_gui.py:1629
 msgid "{date} and {time} are replaced with the scan date and time."
 msgstr "{date} und {time} werden durch Datum und Uhrzeit des Scans ersetzt."
 
-#: slim_scan_gui.py:1614
+#: slim_scan_gui.py:1639
 msgid "Duplicate"
 msgstr "Duplizieren"
 
-#: slim_scan_gui.py:1617
+#: slim_scan_gui.py:1642
 msgid "Remove Scanner"
 msgstr "Scanner entfernen"
 
-#: slim_scan_gui.py:1627
+#: slim_scan_gui.py:1650
 msgid "Save the settings and close"
 msgstr "Einstellungen speichern und schließen"
 
-#: slim_scan_gui.py:1679
+#: slim_scan_gui.py:1702
 msgid "Further scanimage options for this scanner's SANE backend, e.g. --adf-justification-x=center"
 msgstr "Weitere scanimage-Optionen für das SANE-Backend dieses Scanners, z. B. --adf-justification-x=center"
 
-#: slim_scan_gui.py:1689
+#: slim_scan_gui.py:1712
 msgid "SANE is not installed (package sane-utils)"
 msgstr "SANE ist nicht installiert (Paket sane-utils)"
 
-#: slim_scan_gui.py:1695
+#: slim_scan_gui.py:1718
 msgid "No address: found automatically on the network when scanning"
 msgstr "Keine Adresse: wird beim Scannen automatisch im Netzwerk gesucht"
 
-#: slim_scan_gui.py:1699 slim_scan_gui.py:1929 slim_scan_gui.py:909 slim_scan_gui.py:1054
+#: slim_scan_gui.py:1722 slim_scan_gui.py:1952 slim_scan_gui.py:922 slim_scan_gui.py:1067
 msgid "Searching…"
 msgstr "Suche läuft …"
 
-#: slim_scan_gui.py:1724
+#: slim_scan_gui.py:1747
 msgid "Not found: {error}"
 msgstr "Nicht gefunden: {error}"
 
-#: slim_scan_gui.py:1778
+#: slim_scan_gui.py:1801
 msgid "Remove “{name}”?"
 msgstr "„{name}“ entfernen?"
 
-#: slim_scan_gui.py:1779
+#: slim_scan_gui.py:1802
 msgid "Its settings are deleted. The scanner itself is not affected."
 msgstr "Seine Einstellungen werden gelöscht. Der Scanner selbst bleibt unverändert."
 
-#: slim_scan_gui.py:1780 slim_scan_gui.py:646 slim_scan_gui.py:939
+#: slim_scan_gui.py:1803 slim_scan_gui.py:659 slim_scan_gui.py:952
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: slim_scan_gui.py:1781 slim_scan_gui.py:1904
+#: slim_scan_gui.py:1804 slim_scan_gui.py:1927
 msgid "Remove"
 msgstr "Entfernen"
 
-#: slim_scan_gui.py:1804
+#: slim_scan_gui.py:1827
 msgid "Scanners"
 msgstr "Scanner"
 
-#: slim_scan_gui.py:1805
+#: slim_scan_gui.py:1828
 msgid "Find Scanners"
 msgstr "Scanner suchen"
 
-#: slim_scan_gui.py:1811
+#: slim_scan_gui.py:1834
 msgid "Scanners found"
 msgstr "Gefundene Scanner"
 
-#: slim_scan_gui.py:1814
+#: slim_scan_gui.py:1837
 msgid "After scanning"
 msgstr "Nach dem Scannen"
 
-#: slim_scan_gui.py:1815
+#: slim_scan_gui.py:1838
 msgid "Open PDF after scanning"
 msgstr "PDF nach dem Scannen öffnen"
 
-#: slim_scan_gui.py:1817
+#: slim_scan_gui.py:1840
 msgid "Notify when a scan is done"
 msgstr "Benachrichtigen, wenn ein Scan fertig ist"
 
-#: slim_scan_gui.py:1818
+#: slim_scan_gui.py:1841
 msgid "Only while the window is in the background"
 msgstr "Nur wenn das Fenster im Hintergrund ist"
 
-#: slim_scan_gui.py:1823
+#: slim_scan_gui.py:1846
 msgid "Status bar"
 msgstr "Statusleiste"
 
-#: slim_scan_gui.py:1824
+#: slim_scan_gui.py:1847
 msgid "Show icon in the status bar"
 msgstr "Symbol in der Statusleiste anzeigen"
 
-#: slim_scan_gui.py:1827
+#: slim_scan_gui.py:1850
 msgid "Closing the window keeps Slim Scan running there."
 msgstr "Nach dem Schließen des Fensters läuft Slim Scan dort weiter."
 
-#: slim_scan_gui.py:1830
+#: slim_scan_gui.py:1853
 msgid "Your desktop shows no status bar icons right now. On GNOME, install the “AppIndicator and KStatusNotifierItem Support” extension."
 msgstr "Ihre Arbeitsumgebung zeigt derzeit keine Statusleisten-Symbole an. Installieren Sie unter GNOME die Erweiterung „AppIndicator and KStatusNotifierItem Support“."
 
-#: slim_scan_gui.py:1833
+#: slim_scan_gui.py:1856
 msgid "Start at login"
 msgstr "Bei der Anmeldung starten"
 
-#: slim_scan_gui.py:1834
+#: slim_scan_gui.py:1857
 msgid "In the status bar, without opening the window"
 msgstr "In der Statusleiste, ohne das Fenster zu öffnen"
 
-#: slim_scan_gui.py:1842
+#: slim_scan_gui.py:1865
 msgid "The scanners and their settings are shared with the slim-scan command (--scanner NAME)."
 msgstr "Die Scanner und ihre Einstellungen gelten auch für den Befehl slim-scan (--scanner NAME)."
 
-#: slim_scan_gui.py:1845
+#: slim_scan_gui.py:1868
 msgid "Settings file"
 msgstr "Einstellungsdatei"
 
-#: slim_scan_gui.py:1889
+#: slim_scan_gui.py:1912
 msgid "Each scanner has its own settings. The marked one is used by default."
 msgstr "Jeder Scanner hat eigene Einstellungen. Der markierte wird standardmäßig verwendet."
 
-#: slim_scan_gui.py:1891
+#: slim_scan_gui.py:1914
 msgid "No scanner configured yet. Add one, or let Find Scanners look on the network."
 msgstr "Noch kein Scanner eingerichtet. Fügen Sie einen hinzu oder lassen Sie „Scanner suchen“ im Netzwerk suchen."
 
-#: slim_scan_gui.py:1913
+#: slim_scan_gui.py:1936
 msgid "Add Scanner by Address…"
 msgstr "Scanner per Adresse hinzufügen …"
 
-#: slim_scan_gui.py:1914
+#: slim_scan_gui.py:1937
 msgid "If it is not found on the network"
 msgstr "Falls er im Netzwerk nicht gefunden wird"
 
-#: slim_scan_gui.py:1944
+#: slim_scan_gui.py:1967
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: slim_scan_gui.py:1954
+#: slim_scan_gui.py:1977
 msgid "No scanner found"
 msgstr "Kein Scanner gefunden"
 
-#: slim_scan_gui.py:1964 slim_scan_gui.py:1944
+#: slim_scan_gui.py:1987 slim_scan_gui.py:1967
 msgid "Add Again"
 msgstr "Erneut hinzufügen"
 
-#: slim_scan_gui.py:1982
+#: slim_scan_gui.py:2005
 msgid "Could not save the preferences: {error}"
 msgstr "Die Einstellungen konnten nicht gespeichert werden: {error}"
 
-#: slim_scan_gui.py:1997
+#: slim_scan_gui.py:2020
 msgid "Start in the status bar without opening the window"
 msgstr "In der Statusleiste starten, ohne das Fenster zu öffnen"
 
-#: slim_scan_gui.py:2059
+#: slim_scan_gui.py:2082
 msgid "The settings file could not be read and is ignored until you save the preferences:\n{error}"
 msgstr "Die Einstellungsdatei konnte nicht gelesen werden und wird ignoriert, bis Sie die Einstellungen speichern:\n{error}"
 
-#: slim_scan_gui.py:2212
+#: slim_scan_gui.py:2235
 msgid "Scan documents from WSD network scanners into PDF files."
 msgstr "Dokumente von WSD-Netzwerkscannern als PDF-Dateien scannen."
 
-#: slim_scan_gui.py:2225
+#: slim_scan_gui.py:2248
 msgid "Scan finished"
 msgstr "Scan abgeschlossen"
 

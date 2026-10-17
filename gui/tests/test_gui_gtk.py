@@ -417,6 +417,24 @@ class GtkTest(unittest.TestCase):
             dialog.close()
             window.close()
 
+    def test_dialogs_fit_the_narrowest_window(self):
+        """Regression: side-by-side buttons made dialogs wider than a 360 px window."""
+        with FakeScanner(model="ES-580W") as fake:
+            slim_scan.save_config({"scanner": "Office"}, scanners={"Office": {"host": fake.host}})
+            app = slim_scan_gui.ScanApp()
+            app.register(None)
+            app.activate()
+            window = app.window
+            assert window is not None
+            narrowest = window.get_size_request()[0]
+            dialog = slim_scan_gui.ScanSettingsDialog(window)
+            prefs = slim_scan_gui.PreferencesDialog(window)
+            page = slim_scan_gui.ScannerPage(prefs, "Office")
+            for widget in (dialog.get_child(), page.get_child()):
+                minimum = widget.measure(Gtk.Orientation.HORIZONTAL, -1)[0]
+                self.assertLessEqual(minimum, narrowest, type(widget.get_parent()).__name__)
+            window.close()
+
     def start_app(self, fake, **config):
         out_dir = tempfile.mkdtemp(prefix="slim-scan-gtk-out-")
         slim_scan.save_config(dict({"host": fake.host, "outdir": out_dir}, **config))
@@ -544,7 +562,7 @@ class GtkTest(unittest.TestCase):
             window.on_scan()
             wait_for(lambda: window.cancel_event is None)
             self.assertEqual(window.page_count.get_text(), "2 of 4 pages kept")
-            self.assertIn("removed 2 blank pages", window.last_toast.get_title())
+            self.assertIn("removed 2 blank pages", (window.last_toast.get_title() or window.last_toast.get_custom_title().get_label()))
             window.close()
         files = os.listdir(out_dir)
         with open(os.path.join(out_dir, files[0]), "rb") as f:
