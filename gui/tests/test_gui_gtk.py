@@ -709,6 +709,7 @@ class GtkTest(unittest.TestCase):
             window.close()
         self.assertEqual(os.listdir(new_folder), ["ACME invoice.pdf"])
         self.assertEqual(os.listdir(out_dir), [])
+        self.assertEqual(slim_scan.load_config()["outdir"], new_folder, "default for the next run")
 
     def test_empty_name_falls_back_to_default(self):
         with FakeScanner(model="ES-580W", sheets=1) as fake:

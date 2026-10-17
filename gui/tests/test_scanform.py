@@ -313,6 +313,15 @@ class FormTest(unittest.TestCase):
                 self.assertEqual(scanform.documents_dir(), docs)
 
 
+    def test_remembered_outdir(self):
+        with mock.patch.object(scanform, "documents_dir", return_value="/home/anna/Documents"):
+            self.assertIsNone(scanform.remembered_outdir("/home/anna/Documents", ""))
+            self.assertIsNone(scanform.remembered_outdir("/srv/scans", "/srv/scans"))
+            self.assertEqual(scanform.remembered_outdir("/srv/scans", ""), "/srv/scans")
+            self.assertEqual(scanform.remembered_outdir("/home/anna/Documents", "/srv/scans"),
+                             "/home/anna/Documents")
+
+
 class ScannerProfilesTest(unittest.TestCase):
     def test_subtitle(self):
         self.assertEqual(scanform.scanner_subtitle({"host": "192.168.2.13"}), "192.168.2.13")

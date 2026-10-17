@@ -55,7 +55,7 @@ tar -xzf scan-to-pdf-<version>.tar.gz && cd scan-to-pdf-<version> && ./install.s
    - **Reset to Defaults** goes back to the saved settings.
 4. Click **Scan** (or press Ctrl+Enter). Each page appears as a thumbnail under **Pages** as soon as it's scanned, with a page counter. **Cancel** (Esc) stops after the current page.
 
-   File name and folder stay editable while scanning: they are only used when the PDF is saved, after the last page (or when you click **Save** in the review step). An empty file name falls back to the default name.
+   File name and folder stay editable while scanning: they are only used when the PDF is saved, after the last page (or when you click **Save** in the review step). An empty file name falls back to the default name. The folder of a saved scan is remembered for the next scans, also after restarting the app.
 5. With **Review pages before saving** switched on (Scan settings; default off, i.e. every page is processed), the app pauses after the last page:
    - Untick the pages you don't want, then click **Save** (or press Enter in the file name). You can still change the file name and folder now.
    - **Scan** adds more pages to the same document: load the next stack into the feeder and click **Scan** again, as often as you like. The new pages are numbered on, and nothing is saved until you click **Save**. They are scanned with the same settings; to change the settings, save first. If that scan fails (e.g. an empty feeder) or you cancel it, the pages scanned before stay.
@@ -145,7 +145,7 @@ Every scanner has **its own settings**. Different scanners can be set up differe
   - **Use by default.**
 - **Scan settings:** sides, color, resolution, paper size, lossless, brightness/contrast, text recognition on/off, remove blank pages, straighten pages, the scanner's own corrections (SANE), turn pages upright, review pages. Once the device has answered, only what it supports is offered.
 - **Text recognition (OCR):** engine (Automatic, Tesseract, OCRmyPDF) and languages. **Choose languages automatically** is on by default and shows its current result. Turn it off to pick languages from the installed ones.
-- **Saving:** folder, file-name template (`{date}`, `{time}`).
+- **Saving:** folder, file-name template (`{date}`, `{time}`). After each saved scan, its folder becomes the folder setting, so the next scan and the next app start use it too.
 - **Duplicate** (a copy to configure differently) and **Remove Scanner**.
 
 With two or more scanners, the main window shows a **Scanner** selector at the top, with the same names as in the preferences. The app remembers the one used last; the `slim-scan` command uses the default scanner (or `--scanner NAME`).

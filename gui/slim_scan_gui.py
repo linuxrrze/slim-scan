@@ -1377,6 +1377,7 @@ class MainWindow(Adw.ApplicationWindow):
         toast = Adw.Toast(use_markup=False, title=message, button_label=_("Open"), action_name="app.open-file",
                           action_target=GLib.Variant("s", out), timeout=8)
         self.app.saved_files.add(out)
+        self.remember_folder(os.path.dirname(out))
         self.toasts.add_toast(toast)
         self.last_toast = toast
         self.new_file_name()
@@ -1391,6 +1392,16 @@ class MainWindow(Adw.ApplicationWindow):
             self.app.open_file(out)
         if self.app.gui_config["notify"] and not (self.is_visible() and self.is_active()):
             self.app.notify_done(message, out)
+
+    def remember_folder(self, folder):
+        """Make the folder of the saved scan the default for the next scans and runs."""
+        outdir = scanform.remembered_outdir(folder, self.app.config["outdir"])
+        if outdir is None:
+            return
+        try:
+            self.app.save_scanner_settings({"outdir": outdir})
+        except (ValueError, OSError, slim_scan.ScanError):
+            pass  # the scan is saved; the folder is only a convenience
 
     def _scan_failed(self, error):
         self.cancel_event = None

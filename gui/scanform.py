@@ -62,6 +62,14 @@ def documents_dir():
     return fallback if os.path.isdir(fallback) else home
 
 
+def remembered_outdir(folder, outdir):
+    """The folder setting to store after saving a scan in folder, or None if
+    it is already the default. An empty setting keeps following Documents."""
+    if folder == (outdir or documents_dir()):
+        return None
+    return folder
+
+
 def load_gui_config():
     raw = slim_scan.load_config_section("gui")
     values = dict(GUI_DEFAULTS)
