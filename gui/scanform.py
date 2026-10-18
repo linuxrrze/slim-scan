@@ -22,7 +22,7 @@ pgettext = TRANSLATION.pgettext  # for a word used in two meanings
 
 APP_ID = "io.github.linuxrrze.SlimScan"
 APP_NAME = "Slim Scan"
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 
 # (value, label) pairs in display order.
 SOURCES = [("duplex", _("Both sides")), ("adf", _("One side"))]
