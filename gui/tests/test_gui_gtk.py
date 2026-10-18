@@ -83,7 +83,10 @@ class GtkTest(unittest.TestCase):
         if os.path.exists(os.environ["SLIM_SCAN_CONFIG"]):
             os.remove(os.environ["SLIM_SCAN_CONFIG"])
         # Again per test: the tray tests' private bus changes the variable.
-        patcher = mock.patch.dict(os.environ, {"DBUS_SESSION_BUS_ADDRESS": NO_BUS})
+        # Saving the preferences writes or removes the autostart entry: keep
+        # it out of the real ~/.config.
+        patcher = mock.patch.dict(os.environ, {"DBUS_SESSION_BUS_ADDRESS": NO_BUS,
+                                               "XDG_CONFIG_HOME": CONFIG_DIR})
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -387,6 +390,33 @@ class GtkTest(unittest.TestCase):
         # Next start: the scanner used last.
         self.assertEqual(slim_scan.load_config(scanner=scanform.load_gui_config()["last_scanner"])
                          ["mode"], "bw")
+
+    def test_start_at_login_turns_on_the_icon(self):
+        """Regression: "Start at login" was greyed out until the icon, below it, was on."""
+        slim_scan.save_config({"host": "192.0.2.7", "scanner": ""}, scanners={})
+        app = slim_scan_gui.ScanApp()
+        app.register(None)
+        app.activate()
+        window = app.window
+        assert window is not None
+        prefs = slim_scan_gui.PreferencesDialog(window)
+        present(prefs, window)
+        group = prefs.autostart_row.get_ancestor(Adw.PreferencesGroup)
+        self.assertEqual(group.get_title(), "Behavior")
+        self.assertIs(prefs.autostart_row.get_next_sibling(), prefs.tray_row, "login first")
+        prefs.tray_row.set_active(False)
+        self.assertFalse(prefs.autostart_row.get_active())
+        self.assertTrue(prefs.autostart_row.get_sensitive())
+        prefs.autostart_row.set_active(True)
+        self.assertTrue(prefs.tray_row.get_active(), "starting hidden needs the icon")
+        prefs.tray_row.set_active(False)
+        self.assertFalse(prefs.autostart_row.get_active(), "no icon: no hidden start")
+        prefs.autostart_row.set_active(True)
+        prefs.close()
+        wait_for(lambda: os.path.exists(scanform.autostart_path()))
+        self.assertTrue(scanform.autostart_path().startswith(CONFIG_DIR))
+        self.assertTrue(scanform.load_gui_config()["tray"])
+        window.close()
 
     def test_preferences_scanner_list(self):
         slim_scan.save_config({"host": "192.0.2.7", "scanner": ""}, scanners={})

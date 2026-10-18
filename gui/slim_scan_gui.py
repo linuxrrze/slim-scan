@@ -1931,7 +1931,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         behavior.add(self.open_after)
         behavior.add(self.notify_row)
 
-        background = Adw.PreferencesGroup(title=_("Status bar"))
+        background = Adw.PreferencesGroup(title=_("Behavior"))
         self.tray_row = Adw.SwitchRow(use_markup=False, title=_("Show icon in the status bar"),
                                       active=app.gui_config["tray"])
         if app.status_bar_host_present():
@@ -1944,10 +1944,12 @@ class PreferencesDialog(Adw.PreferencesDialog):
             use_markup=False, title=_("Start at login"),
             subtitle=_("In the status bar, without opening the window"),
             active=scanform.autostart_enabled())
-        self.tray_row.connect("notify::active", lambda *_a: self._sync_background())
-        background.add(self.tray_row)
+        if not self.tray_row.get_active():
+            self.autostart_row.set_active(False)
+        self.autostart_row.connect("notify::active", self._sync_background)
+        self.tray_row.connect("notify::active", self._sync_background)
         background.add(self.autostart_row)
-        self._sync_background()
+        background.add(self.tray_row)
 
         cli = Adw.PreferencesGroup(
             description=_("The scanners and their settings are shared with the slim-scan "
@@ -1962,10 +1964,11 @@ class PreferencesDialog(Adw.PreferencesDialog):
         self.add(page)
         self.connect("closed", self._save)
 
-    def _sync_background(self):
-        tray = self.tray_row.get_active()
-        self.autostart_row.set_sensitive(tray)  # starting hidden needs the icon
-        if not tray:
+    def _sync_background(self, row, _pspec):
+        """Starting hidden at login needs the status bar icon."""
+        if row is self.autostart_row and row.get_active():
+            self.tray_row.set_active(True)
+        elif row is self.tray_row and not row.get_active():
             self.autostart_row.set_active(False)
 
     # --- scanner list -------------------------------------------------------

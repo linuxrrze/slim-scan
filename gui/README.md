@@ -125,9 +125,9 @@ By default, the app uses all installed languages, with your system language and 
 
 ## Status bar and start at login
 
-In **Preferences → Status bar**:
+In **Preferences → Behavior**:
+- **Start at login:** starts Slim Scan hidden in the status bar when you log in. Turning it on also turns on the status bar icon; turning the icon off turns it off. It creates the standard autostart entry `~/.config/autostart/io.github.linuxrrze.SlimScan.desktop` (uninstalling removes it). If no status bar is available at login, the window opens instead, so the app is never invisible. While the screen is locked (GNOME turns off the AppIndicator extension then), it waits until you unlock.
 - **Show icon in the status bar:** Slim Scan keeps running there when you close the window. Clicking the icon opens or hides the window. Its menu has **Open Slim Scan**, **Scan** (scans with the current settings, without opening the window) and **Quit**. While scanning, the icon's tooltip shows the progress. When a scan finishes in the background, a notification appears; click it to open the PDF.
-- **Start at login:** starts Slim Scan hidden in the status bar when you log in. It creates the standard autostart entry `~/.config/autostart/io.github.linuxrrze.SlimScan.desktop` (uninstalling removes it). If no status bar is available at login, the window opens instead, so the app is never invisible. While the screen is locked (GNOME turns off the AppIndicator extension then), it waits until you unlock.
 
 To quit while the icon is shown, use **Quit** in the icon's menu or the main menu, or Ctrl+Q.
 
@@ -151,7 +151,7 @@ Every scanner has **its own settings**. Different scanners can be set up differe
   - **Find Scanners** lists the WSD scanners on the network and, if SANE is installed (`sane-utils`), the scanners SANE finds; **Add** takes one over (**Add Again** for a second configuration of the same device).
   - A scanner set up in an older version becomes the first entry automatically, named after the device, e.g. "EPSON ES-580W".
 - **After scanning:** open the PDF, notify when done.
-- **Status bar:** see above.
+- **Behavior:** start at login and the status bar icon, see [above](#status-bar-and-start-at-login).
 
 **A scanner's page** has:
 - **Scanner:**
