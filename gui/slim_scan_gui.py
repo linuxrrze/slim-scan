@@ -1394,6 +1394,11 @@ class MainWindow(Adw.ApplicationWindow):
         """Scan the feeder again into the saved document, with its settings."""
         if not self.document or self.cancel_event or self.review:
             return
+        try:
+            slim_scan.check_document(self.document)  # before scanning in vain
+        except slim_scan.DocumentChanged:
+            self.document_changed()
+            return
         if self.last_toast:
             self.last_toast.dismiss()
             self.last_toast = None
@@ -1418,6 +1423,16 @@ class MainWindow(Adw.ApplicationWindow):
             return document["path"], pages, complete, ocr_error
 
         run_in_thread(work, self._scan_done, self._scan_failed)
+
+    def document_changed(self):
+        """The saved PDF was changed elsewhere: it is not written over."""
+        name = os.path.basename(self.document["path"])
+        self.document = None
+        self.update_add_pages()
+        self.show_error(_("“{name}” was changed, moved or deleted since it was saved. Adding "
+                          "pages would write over that, so the PDF was left as it is. Scan "
+                          "the pages into a new document instead.").format(name=name),
+                        heading=_("Cannot add pages"))
 
     def on_cancel(self, *_args):
         if self.review:
@@ -1499,6 +1514,9 @@ class MainWindow(Adw.ApplicationWindow):
                 self.page_grid.remove(tile)
             del self.tiles[adding:]
             self.update_page_count()
+            if isinstance(error, slim_scan.DocumentChanged):  # changed while scanning
+                self.document_changed()
+                return
             if isinstance(error, slim_scan.ScanCancelled):
                 name = os.path.basename(self.document["path"])
                 self.toasts.add_toast(Adw.Toast(use_markup=False, title=(

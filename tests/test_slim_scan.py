@@ -1178,6 +1178,40 @@ class ScanToFileTest(unittest.TestCase):
         self.assertEqual([e for e in events if e[0] in ("page", "blank", "saving")],
                          [("page", 5), ("page", 6), ("blank", 6), ("saving", 3)])
 
+    def test_changed_document_is_not_written_over(self):
+        with tempfile.TemporaryDirectory() as d, FakeScanner(sheets=1) as fake:
+            out = os.path.join(d, "out.pdf")
+            document = {}
+            tool.scan_to_file(args(host=fake.host, model=None), out, document=document)
+            scans = fake.actions().count("CreateScanJob")
+            # Changed (e.g. annotated) or deleted: refused before scanning.
+            for change in ("annotated", None):
+                with self.subTest(change=change):
+                    with open(out, "rb") as f:
+                        original = f.read()
+                    if change:
+                        with open(out, "ab") as f:
+                            f.write(b"%" + change.encode() + b"\n")
+                    else:
+                        os.remove(out)
+                    with self.assertRaisesRegex(tool.DocumentChanged, "changed, moved or deleted"):
+                        tool.scan_to_file(None, None, document=document)
+                    self.assertEqual(fake.actions().count("CreateScanJob"), scans, "not scanned")
+                    with open(out, "wb") as f:
+                        f.write(original)
+            # Changed while scanning: refused before saving, the change stays.
+            def change_on_scan(event, n):
+                if event == "page":
+                    with open(out, "ab") as f:
+                        f.write(b"%late\n")
+
+            with self.assertRaises(tool.DocumentChanged):
+                tool.scan_to_file(None, None, document=document, on_progress=change_on_scan)
+            with open(out, "rb") as f:
+                data = f.read()
+            self.assertTrue(data.endswith(b"%late\n"))
+            self.assertEqual(parse_pdf(data[:data.index(b"%late")])["pages"], 2)
+
     def test_page_images_and_selection(self):
         images, offered = [], []
         with tempfile.TemporaryDirectory() as d, FakeScanner(**ES580W_PROFILE, sheets=2) as fake:

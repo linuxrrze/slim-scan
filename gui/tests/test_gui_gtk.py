@@ -609,6 +609,25 @@ class GtkTest(unittest.TestCase):
         with open(os.path.join(out_dir, saved[0]), "rb") as f:
             self.assertEqual(f.read().count(b"/Type /Page "), 3)
 
+    def test_add_pages_refused_for_changed_pdf(self):
+        with FakeScanner(model="ES-580W", sheets=1) as fake:
+            _app, window, out_dir = self.start_app(fake)
+            window.on_scan()
+            wait_for(lambda: window.cancel_event is None)
+            path = window.document["path"]
+            with open(path, "ab") as f:
+                f.write(b"%annotated elsewhere\n")
+            with mock.patch.object(window, "show_error") as show_error:
+                window.activate_action("win.add-pages", None)
+            self.assertIsNone(window.cancel_event, "nothing scanned")
+            self.assertEqual(show_error.call_args.kwargs["heading"], "Cannot add pages")
+            self.assertIn(os.path.basename(path), show_error.call_args.args[0])
+            self.assertFalse(window.add_button.get_parent().get_visible())
+            self.assertEqual(len(window.tiles), 2)
+            window.close()
+        with open(path, "rb") as f:
+            self.assertTrue(f.read().endswith(b"%annotated elsewhere\n"), "left as it was")
+
     def sheet_jpeg(self):
         """A tilted A6 sheet on gray backing in a 75 dpi scan of the whole scan area."""
         return make_jpeg(scanned_sheet(638, 1163, (300, 330, 438, 620, 3.5), pad_from=720,

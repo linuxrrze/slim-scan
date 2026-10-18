@@ -24,6 +24,7 @@ import collections
 import configparser
 import datetime
 import getpass
+import hashlib
 import os
 import http.client
 import math
@@ -121,6 +122,10 @@ class ScanError(Exception):
 
 class ScanCancelled(ScanError):
     """The scan was stopped on request (should_stop returned True)."""
+
+
+class DocumentChanged(ScanError):
+    """The saved PDF that pages are added to is no longer as it was saved."""
 
 
 class ScannerNotFound(ScanError):
@@ -908,6 +913,26 @@ def scan(service, args, caps, on_page=None, should_stop=None):
 SCAN_MORE = "more"  # select_pages(): scan more pages into the same document
 
 
+def file_digest(path):
+    """SHA-256 of a file's contents, or None if it cannot be read."""
+    digest = hashlib.sha256()
+    try:
+        with open(path, "rb") as f:
+            while chunk := f.read(2 ** 20):
+                digest.update(chunk)
+    except OSError:
+        return None
+    return digest.hexdigest()
+
+
+def check_document(document):
+    """Raise DocumentChanged if the saved PDF was changed, moved or deleted
+    since it was saved: adding pages would overwrite that."""
+    if file_digest(document["path"]) != document["digest"]:
+        raise DocumentChanged(f"{document['path']} was changed, moved or deleted since it "
+                              "was saved; not writing over it")
+
+
 def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
                  on_page_image=None, select_pages=None, overwrite=False,
                  on_more_failed=None, document=None):
@@ -950,7 +975,8 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
     to it later. If it already holds one, the feeder's pages are added to it,
     with its settings (not args), numbered on, and the PDF is written again
     at its path (not out). Only the new pages are recognized with Tesseract;
-    OCRmyPDF recognizes the whole document again.
+    OCRmyPDF recognizes the whole document again. If the PDF is no longer as
+    it was saved, DocumentChanged is raised, before scanning or saving.
 
     Returns (pages, complete, ocr_error): the pages saved by this call. If OCR
     fails, the PDF is kept without text and ocr_error says why. Raises
@@ -959,6 +985,7 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
     """
     before = document if document and document.get("path") else None
     if before:
+        check_document(before)
         args, out, overwrite = before["args"], before["path"], True
     offset = before["scanned"] if before else 0  # page numbers go on
     report = on_progress or (lambda event, pages: None)
@@ -1061,17 +1088,19 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
             font = tesseract_font(ocr[1])
         if callable(out):
             out = out()
+        if before:
+            check_document(before)  # also changed while scanning
         report("saving", len(pages))
         write_pdf(out, pages, dpi, overwrite, pages=infos, words=words, font_file=font)
-        if document is not None:
-            document.update(path=out, args=args, dpi=dpi, pages=pages, infos=infos,
-                            words=words, scanned=offset + scanned)
         if ocr and not early:
             report("ocr", len(pages))
             try:
                 run_ocr(ocr[1], out, ocr[2])
             except ScanError as e:
                 ocr_error = str(e)
+        if document is not None:
+            document.update(path=out, args=args, dpi=dpi, pages=pages, infos=infos,
+                            words=words, scanned=offset + scanned, digest=file_digest(out))
         return added, complete, ocr_error
     finally:
         if early:
