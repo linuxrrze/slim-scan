@@ -67,6 +67,11 @@ One-time setup on GitHub:
 2. After the first tag has created the `gh-pages` branch: Settings → Pages → Deploy from a branch → `gh-pages`, `/ (root)`.
 3. The key expires. Before that, extend it (`gpg --quick-set-expire`), update the secret and publish again. apt checks against the keyring file users downloaded, so they have to run the first `curl` command again; otherwise `apt update` fails once the old date has passed.
 
+Security checks in CI:
+- `.github/workflows/codeql.yml` runs CodeQL (`security-extended`) on the Python code and on the workflows themselves, on every push and pull request and weekly. Findings are under Security → Code scanning.
+- There is no CVE scan of dependencies: the code uses only the standard library and PyGObject, and the packages bundle nothing. Fixes for Python, GTK, libadwaita, Tesseract or SANE reach users through their distribution's security updates.
+- The workflows pin every action to a commit SHA (with the version as a comment), so a moved tag can't run in the job that holds the signing key. Dependabot (`.github/dependabot.yml`) proposes updates weekly, in one PR.
+
 Leftover from the rename: `gui/install.sh --dist` still names its archive `scan-to-pdf-<version>.tar.gz`.
 
 ## libadwaita 1.5: close() right after present() is ignored

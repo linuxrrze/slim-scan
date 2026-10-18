@@ -1,0 +1,13 @@
+# Keeps the pinned GitHub Actions current (they are the workflows' only
+# external dependencies); one PR per week at most.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "CI"
