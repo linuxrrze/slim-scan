@@ -15,9 +15,38 @@ It was developed and tested with the **Epson ES-580W**, which has no eSCL/AirSca
 
 With WSD, only standard features are used. Everything model-dependent (resolutions, color modes, formats, duplex, paper size, brightness/contrast) is read from the scanner at run time, over either backend.
 
+## Install
+
+On **Debian 13+ and Ubuntu 24.04+** (and derivatives such as Linux Mint 22), install from the project's apt repository. You then get updates with your other packages:
+
+```sh
+sudo curl -fsSLo /usr/share/keyrings/slim-scan-archive-keyring.gpg \
+  https://linuxrrze.github.io/slim-scan/slim-scan-archive-keyring.gpg
+sudo curl -fsSLo /etc/apt/sources.list.d/slim-scan.sources \
+  https://linuxrrze.github.io/slim-scan/slim-scan.sources
+sudo apt update
+sudo apt install slim-scan        # the command only
+sudo apt install slim-scan-gui    # the desktop app, with the command
+```
+
+There are two packages:
+
+| Package | Contains | Needs |
+|---|---|---|
+| `slim-scan` | the `slim-scan` command | Python 3.9+; Tesseract is installed as a recommended package |
+| `slim-scan-gui` | the **Slim Scan** app, see [gui/README.md](gui/README.md) | `slim-scan`, GTK 4.12+, libadwaita 1.5+ |
+
+Add `sane-utils` for the [SANE](#sane) backend and `ocrmypdf` if you want to use it for OCR. On Debian 12 and Ubuntu 22.04 only `slim-scan` installs; their GTK is too old for the app.
+
+To remove it: `sudo apt remove slim-scan-gui slim-scan`. Your settings in `~/.config/slim-scan` are kept. To also remove the repository: `sudo rm /etc/apt/sources.list.d/slim-scan.sources /usr/share/keyrings/slim-scan-archive-keyring.gpg`.
+
+Each [release](https://github.com/linuxrrze/slim-scan/releases) also has the two .deb files, for `sudo apt install ./slim-scan_*.deb ./slim-scan-gui_*.deb` without the repository. Elsewhere, run `slim_scan.py` straight from the repository (it needs only Python 3), or install the app with [gui/install.sh](gui/README.md#install).
+
+With the package, use `slim-scan` instead of `./slim_scan.py` in the examples below.
+
 ## Setup
 
-On Debian 13+ and Ubuntu 24.04+, `sudo apt install slim-scan` installs the command from the project's apt repository, after adding it as described in [gui/README.md](gui/README.md#install). The `slim-scan` package needs only Python 3; the app is in `slim-scan-gui`. Then use `slim-scan` instead of `./slim_scan.py` in the examples below. To run it from the repository instead:
+From the repository:
 
 ```sh
 chmod +x slim_scan.py
