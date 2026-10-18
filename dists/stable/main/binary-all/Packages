@@ -1,0 +1,52 @@
+Package: slim-scan-gui
+Architecture: all
+Version: 1.3.2
+Priority: optional
+Section: graphics
+Source: slim-scan
+Maintainer: Marcel Ritter <marcel+it+github@linux-ng.de>
+Installed-Size: 229
+Depends: slim-scan (= 1.3.2), python3 (>= 3.9), python3-gi, gir1.2-gtk-4.0 (>= 4.12), gir1.2-adw-1 (>= 1.5)
+Filename: pool/main/s/slim-scan/slim-scan-gui_1.3.2_all.deb
+Size: 55380
+MD5sum: 46963610099e01bffec64e0ed2f21f69
+SHA1: 770214455243b544bd974bcb921da4784e444cd0
+SHA256: c394a5689a3e62bda81f77f003f24f5c74a0f3346446abf687d6d362c800c179
+SHA512: bfbeabba5522d961bd5e13d053bba502dc2c553c052f45c6637bca5a7c2faba3eabf426c8209524d6266fc2248301cb8da540bb40e69c0e81b2327a910c3f3aa
+Homepage: https://github.com/linuxrrze/slim-scan
+Description: scan documents from a network scanner into PDF files (desktop app)
+ Slim Scan is a GTK 4 / libadwaita app built on slim-scan. It scans every
+ page in a scanner's document feeder into one PDF, shows the pages for
+ review and correction before saving, and can make the PDF searchable.
+ .
+ It can stay in the status bar and start at login.
+
+Package: slim-scan
+Architecture: all
+Version: 1.3.2
+Priority: optional
+Section: graphics
+Maintainer: Marcel Ritter <marcel+it+github@linux-ng.de>
+Installed-Size: 184
+Depends: python3 (>= 3.9)
+Recommends: tesseract-ocr, tesseract-ocr-osd
+Suggests: ocrmypdf, sane-utils, slim-scan-gui
+Filename: pool/main/s/slim-scan/slim-scan_1.3.2_all.deb
+Size: 58284
+MD5sum: 29d74dbd9be49c295f80f27a9e1e757b
+SHA1: f61f818adb1f10bf324932bf9341165e85742e3e
+SHA256: b650c8a03efdd30f5760fe4ea172bd691b6a44dbb311a6bcef886c95f803a918
+SHA512: b6381b8b600d22f160d3dfea441c6977fbd25c34dec660ed848bc8c3b8937ca6e6dd4861cf3125ed091fdc60e8420fbe436b6a758da444891550264f68266f99
+Homepage: https://github.com/linuxrrze/slim-scan
+Description: scan all pages from a document feeder into one PDF
+ slim-scan scans every page in a scanner's document feeder into a single
+ PDF. It talks to network scanners over WSD (built in) or to any scanner
+ SANE supports, through scanimage.
+ .
+ It removes blank pages, finds the paper size, straightens and turns pages
+ upright, and can add a searchable text layer with Tesseract or OCRmyPDF.
+ It was developed against the Epson ES-580W.
+ .
+ This package contains the slim-scan command. The desktop app is in
+ slim-scan-gui.
+

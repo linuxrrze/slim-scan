@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slim Scan apt repository</title>
+<style>body { font: 16px/1.5 sans-serif; max-width: 46em; margin: 2em auto; padding: 0 16px; }
+pre { background: #eee; padding: 1em; overflow-x: auto; }</style></head>
+<body>
+<h1>Slim Scan apt repository</h1>
+<p>Packages of <a href="https://github.com/linuxrrze/slim-scan">Slim Scan</a> for Ubuntu 24.04+ and Debian 13+.</p>
+<pre>sudo curl -fsSLo /usr/share/keyrings/slim-scan-archive-keyring.gpg \
+  https://linuxrrze.github.io/slim-scan/slim-scan-archive-keyring.gpg
+sudo curl -fsSLo /etc/apt/sources.list.d/slim-scan.sources \
+  https://linuxrrze.github.io/slim-scan/slim-scan.sources
+sudo apt update
+sudo apt install slim-scan-gui   # the app; or just slim-scan for the command</pre>
+<p>Signing key: <a href="slim-scan-archive-keyring.asc">slim-scan-archive-keyring.asc</a>, fingerprint <code>F869DF1076B619DE2039F06DA126BE7DF25862CD</code>.</p>
+</body>
+</html>

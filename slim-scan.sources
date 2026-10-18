@@ -1,0 +1,5 @@
+Types: deb
+URIs: https://linuxrrze.github.io/slim-scan/
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/slim-scan-archive-keyring.gpg
