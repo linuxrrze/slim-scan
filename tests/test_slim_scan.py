@@ -1146,6 +1146,38 @@ class ScanToFileTest(unittest.TestCase):
         self.assertEqual(len(failed), 1)
         self.assertIsInstance(failed[0], tool.ScanError)
 
+    def test_pages_added_to_saved_document(self):
+        text, blank = make_jpeg(page(marks=[TEXT_LINE])), make_jpeg(page())
+        events, numbers, document = [], [], {}
+        with tempfile.TemporaryDirectory() as d, \
+                FakeScanner(sheets=2, images=[text, blank]) as fake:
+            out = os.path.join(d, "out.pdf")
+            pages, _c, _e = tool.scan_to_file(
+                args(host=fake.host, model=None, skip_blank=True), out,
+                on_page_image=lambda n, data, info: numbers.append(n), document=document)
+            self.assertEqual(pages, 2)
+            fake.config["sheets"] = 1
+            # The document's settings (blank pages removed), its path and numbers go on.
+            pages, complete, _e = tool.scan_to_file(
+                args(host=fake.host, model=None), os.path.join(d, "other.pdf"),
+                on_progress=lambda event, n: events.append((event, n)),
+                on_page_image=lambda n, data, info: numbers.append(n), document=document)
+            self.assertEqual((pages, complete), (1, True), "pages added")
+            self.assertFalse(os.path.exists(os.path.join(d, "other.pdf")))
+            with open(out, "rb") as f:
+                self.assertEqual(parse_pdf(f.read())["pages"], 3)
+            self.assertEqual((document["path"], document["scanned"], len(document["pages"])),
+                             (out, 6, 3))
+            # Only blank pages: nothing added, the PDF stays as it was.
+            fake.config["images"] = [blank]
+            with self.assertRaisesRegex(tool.ScanCancelled, "only blank pages"):
+                tool.scan_to_file(args(host=fake.host, model=None), out, document=document)
+            with open(out, "rb") as f:
+                self.assertEqual(parse_pdf(f.read())["pages"], 3)
+        self.assertEqual(numbers, [1, 2, 3, 4, 5, 6])
+        self.assertEqual([e for e in events if e[0] in ("page", "blank", "saving")],
+                         [("page", 5), ("page", 6), ("blank", 6), ("saving", 3)])
+
     def test_page_images_and_selection(self):
         images, offered = [], []
         with tempfile.TemporaryDirectory() as d, FakeScanner(**ES580W_PROFILE, sheets=2) as fake:
@@ -1322,6 +1354,30 @@ class OcrTest(unittest.TestCase):
         for n in (1, 2, 4):
             self.assertIn(("ocr_done", n), page_events)
         self.assertNotIn(("ocr_done", 3), page_events[page_events.index(("ocr_cancelled", 3)):])
+
+    def test_text_kept_when_pages_are_added(self):
+        def hex_text(text):
+            return ("<" + "".join(f"{ord(c):04X}" for c in text) + ">").encode()
+
+        for engine, calls, layers in (("tesseract", 2 + 2, 0), ("ocrmypdf", 2, 2)):
+            with self.subTest(engine=engine):
+                self.use_engines(engine)
+                open(self.log, "w").close()
+                document, out = {}, os.path.join(self.dir.name, engine + ".pdf")
+                with FakeScanner(**ES580W_PROFILE, sheets=1) as fake:
+                    tool.scan_to_file(args(host=fake.host, model=None, ocr=True, ocr_engine=engine,
+                                           ocr_lang="eng"), out, document=document)
+                    tool.scan_to_file(None, None, document=document)
+                with open(out, "rb") as f:
+                    data = f.read()
+                if engine == "tesseract":  # only the new pages recognized
+                    self.assertEqual(len(read_log(self.log)), calls)
+                    self.assertEqual(parse_pdf(data)["pages"], 4)
+                    self.assertEqual(data.count(hex_text("eng-page ")), 4)
+                else:  # the whole document again, from a PDF without text
+                    self.assertEqual(len(read_log(self.log)), calls)
+                    self.assertEqual(data.count(b"%fake ocrmypdf text layer\n"), 1)
+                    self.assertEqual(parse_pdf(data[:data.rindex(b"%fake")])["pages"], 4)
 
     def test_no_page_progress_with_ocrmypdf(self):
         self.use_engines("ocrmypdf")

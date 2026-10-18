@@ -453,6 +453,22 @@ def saved_text(pages, name, complete=True, blank=0):
                         pages).format(pages=pages, name=name)
     saved = ngettext("Saved {pages} page as “{name}”", "Saved {pages} pages as “{name}”",
                      pages).format(pages=pages, name=name)
+    return with_blank(saved, blank)
+
+
+def added_text(pages, name, complete=True, blank=0):
+    """The message after adding pages to a saved document."""
+    if not complete:
+        return ngettext("Scan stopped early; added {pages} page to “{name}”",
+                        "Scan stopped early; added {pages} pages to “{name}”",
+                        pages).format(pages=pages, name=name)
+    added = ngettext("Added {pages} page to “{name}”", "Added {pages} pages to “{name}”",
+                     pages).format(pages=pages, name=name)
+    return with_blank(added, blank)
+
+
+def with_blank(saved, blank):
+    """The message with the blank pages removed, if any."""
     if not blank:
         return saved
     removed = ngettext("removed {blank} blank page", "removed {blank} blank pages",

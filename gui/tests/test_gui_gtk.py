@@ -562,11 +562,52 @@ class GtkTest(unittest.TestCase):
             window.on_scan()
             wait_for(lambda: window.cancel_event is None)
             self.assertEqual(window.page_count.get_text(), "2 of 4 pages kept")
-            self.assertIn("removed 2 blank pages", (window.last_toast.get_title() or window.last_toast.get_custom_title().get_label()))
+            toast = window.last_toast
+            self.assertIn("removed 2 blank pages",
+                          toast.get_title() or toast.get_custom_title().get_label())
             window.close()
         files = os.listdir(out_dir)
         with open(os.path.join(out_dir, files[0]), "rb") as f:
             self.assertEqual(f.read().count(b"/Type /Page "), 2)
+
+    def test_add_pages_to_saved_document(self):
+        text = make_jpeg(test_page(413, 585, marks=[(100, 300, 200, 10, 20)]))
+        blank = make_jpeg(test_page(413, 585))
+        with FakeScanner(model="ES-580W", sheets=1, images=[text, blank]) as fake:
+            _app, window, out_dir = self.start_app(fake, skip_blank=True)
+            self.assertFalse(window.add_button.get_parent().get_visible())
+            window.on_scan()
+            wait_for(lambda: window.cancel_event is None)
+            self.assertTrue(window.add_button.get_parent().get_visible())
+            saved = os.listdir(out_dir)
+            # The document's settings count: switching blank-page removal off does not matter.
+            window.settings.skip_blank.set_active(False)
+            fake.config["sheets"] = 2
+            window.activate_action("win.add-pages", None)
+            wait_for(lambda: window.cancel_event is None)
+            self.assertEqual(window.page_count.get_text(), "3 of 6 pages kept")
+            self.assertEqual([tile.number for tile in window.tiles], [1, 2, 3, 4, 5, 6])
+            toast = window.last_toast
+            self.assertIn("Added 2 pages to", toast.get_title() or toast.get_custom_title().get_label())
+            # Cancelled: the pages of that scan go, the document stays.
+            stop = mock.patch.object(slim_scan, "run_scan", side_effect=slim_scan.ScanCancelled("x"))
+            with stop:
+                window.on_add_pages()
+                wait_for(lambda: window.cancel_event is None)
+            self.assertEqual(len(window.tiles), 6)
+            self.assertTrue(window.add_button.get_parent().get_visible())
+            # A scan with review starts a new document that Add Pages does not offer.
+            window.settings.review.set_active(True)
+            window.on_scan()
+            wait_for(lambda: window.review is not None)
+            self.assertFalse(window.add_button.get_parent().get_visible())
+            window.finish_review(True)
+            wait_for(lambda: window.cancel_event is None)
+            self.assertFalse(window.add_button.get_parent().get_visible())
+            window.close()
+        self.assertEqual(len(saved), 1)
+        with open(os.path.join(out_dir, saved[0]), "rb") as f:
+            self.assertEqual(f.read().count(b"/Type /Page "), 3)
 
     def sheet_jpeg(self):
         """A tilted A6 sheet on gray backing in a 75 dpi scan of the whole scan area."""

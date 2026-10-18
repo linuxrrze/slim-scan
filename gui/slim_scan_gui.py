@@ -949,6 +949,10 @@ class MainWindow(Adw.ApplicationWindow):
                                       halign=Gtk.Align.CENTER)
         self.scan_button.add_css_class("suggested-action")
         self.scan_button.add_css_class("pill")
+        # Without review, the saved document can take more pages afterwards.
+        self.add_button = Gtk.Button(label=_("Add Pages"), action_name="win.add-pages")
+        self.add_button.add_css_class("pill")
+        scan_row = button_row(self.add_button, self.scan_button)
         self.cancel_button = Gtk.Button(label=_("Cancel"), action_name="win.cancel",
                                         halign=Gtk.Align.CENTER, visible=False)
         self.cancel_button.add_css_class("pill")
@@ -966,7 +970,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.review_bar.append(discard)
         self.review_bar.append(self.save_button)
         actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        for child in (hint, self.scan_button, self.cancel_button, self.review_bar, self.progress):
+        for child in (hint, scan_row, self.cancel_button, self.review_bar, self.progress):
             actions.append(child)
 
         # Page preview
@@ -977,6 +981,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.ocr_total = 0
         self.blank_pages = 0    # found blank in the current scan
         self.scan_reviewed = False
+        self.document = None    # the saved document that Add Pages scans into
+        self.scan_document = None  # the document of the running scan (filled when saved)
+        self.adding = None      # while adding pages: the tiles shown before
         self.closing = False
         self.review_open = False  # page corrections can be switched (review, before saving)
         self.scan_dpi = 300
@@ -1003,9 +1010,11 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.actions = {}
         self._add_action("scan", self.on_scan)
+        self._add_action("add-pages", self.on_add_pages)
         self._add_action("cancel", self.on_cancel)
         self._add_action("reconnect", lambda *_a: self.connect_scanner())
         self._add_action("scan-settings", lambda *_a: ScanSettingsDialog(self).present(self))
+        self.update_add_pages()
         self.connect("close-request", self._on_close)
         monitor = Gio.NetworkMonitor.get_default()
         network = monitor.connect("network-changed", self._network_changed)
@@ -1155,6 +1164,17 @@ class MainWindow(Adw.ApplicationWindow):
         self.actions["scan-settings"].set_enabled(not busy)
         self.scanner_choice.set_sensitive(not busy)
         self.app.set_busy(busy)
+        self.update_add_pages()
+
+    def update_add_pages(self):
+        can = bool(self.document) and not self.cancel_event and not self.review
+        # Its place in the row too, and the row's second column: Scan stays centered.
+        self.add_button.get_parent().set_visible(can)
+        self.add_button.get_parent().get_parent().set_max_children_per_line(2 if can else 1)
+        self.actions["add-pages"].set_enabled(can)
+        if can:
+            self.add_button.set_tooltip_text(_("Scan more pages into “{name}”").format(
+                name=os.path.basename(self.document["path"])))
 
     def set_progress(self, text):
         self.progress.set_text(text)
@@ -1267,7 +1287,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         if event == "ocr":
             if not self.ocr_tiles:  # without review: the pages not removed as blank
-                self.ocr_tiles = [tile for tile in self.tiles if tile.kept()]
+                self.ocr_tiles = [tile for tile in self.tiles[self.adding or 0:] if tile.kept()]
             self.ocr_total = pages
             for tile in self.ocr_tiles:
                 if tile.ocr_state is None:  # OCRmyPDF: the whole document at once
@@ -1301,6 +1321,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.cancel_event = threading.Event()
         cancel = self.cancel_event
         self.clear_pages()
+        self.document = None  # a new document from now on
+        self.scan_document = None if review else {}
+        document = self.scan_document
         self.ocr_total = 0
         self.blank_pages = 0  # found blank, removed unless reviewed
         self.scan_reviewed = review
@@ -1310,11 +1333,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.set_busy(True)
         self.set_progress(scanform.progress_text("scanning", 0))
 
-        def progress(event, pages):
-            in_main_thread(self.on_progress, event, pages)
-
-        def page_image(number, data, info):
-            in_main_thread(self.add_page, number, make_thumbnail(data, info), info, data)
+        progress, page_image = self.scan_callbacks()
 
         def select_pages(images, infos):
             """Wait (in the scan thread) for the user's review decision."""
@@ -1355,8 +1374,48 @@ class MainWindow(Adw.ApplicationWindow):
             pages, complete, ocr_error = slim_scan.scan_to_file(
                 args, output_path, device=self.device, on_progress=progress,
                 should_stop=cancel.is_set, on_page_image=page_image,
-                select_pages=select_pages if review else None, on_more_failed=more_failed)
+                select_pages=select_pages if review else None, on_more_failed=more_failed,
+                document=document)
             return saved["out"], pages, complete, ocr_error
+
+        run_in_thread(work, self._scan_done, self._scan_failed)
+
+    def scan_callbacks(self):
+        """on_progress and on_page_image for the scan thread."""
+        def progress(event, pages):
+            in_main_thread(self.on_progress, event, pages)
+
+        def page_image(number, data, info):
+            in_main_thread(self.add_page, number, make_thumbnail(data, info), info, data)
+
+        return progress, page_image
+
+    def on_add_pages(self, *_args):
+        """Scan the feeder again into the saved document, with its settings."""
+        if not self.document or self.cancel_event or self.review:
+            return
+        if self.last_toast:
+            self.last_toast.dismiss()
+            self.last_toast = None
+        self.cancel_event = threading.Event()
+        cancel = self.cancel_event
+        document = self.scan_document = self.document
+        self.adding = len(self.tiles)
+        self.ocr_tiles = []  # the kept pages, once text recognition starts
+        self.ocr_total = 0
+        self.blank_pages = 0
+        self.scan_reviewed = self.review_open = False
+        self.scan_dpi = document["args"].resolution
+        self.cancel_button.set_sensitive(True)
+        self.set_busy(True)
+        self.set_progress(scanform.progress_text("scanning", 0))
+        progress, page_image = self.scan_callbacks()
+
+        def work():
+            pages, complete, ocr_error = slim_scan.scan_to_file(
+                None, None, device=self.device, on_progress=progress, should_stop=cancel.is_set,
+                on_page_image=page_image, document=document)
+            return document["path"], pages, complete, ocr_error
 
         run_in_thread(work, self._scan_done, self._scan_failed)
 
@@ -1369,7 +1428,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _scan_done(self, result):
         out, pages, complete, ocr_error = result
+        adding, self.adding = self.adding is not None, None
         self.cancel_event = None
+        self.document = self.scan_document if self.scan_document else None
         self.set_busy(False)
         self.set_progress("")
         if not ocr_error:
@@ -1379,8 +1440,8 @@ class MainWindow(Adw.ApplicationWindow):
             for tile in self.ocr_tiles:
                 tile.set_ocr_state(None)
         name = os.path.basename(out)
-        message = scanform.saved_text(pages, name, complete,
-                                      0 if self.scan_reviewed else self.blank_pages)
+        message = (scanform.added_text if adding else scanform.saved_text)(
+            pages, name, complete, 0 if self.scan_reviewed else self.blank_pages)
         toast = Adw.Toast(button_label=_("Open"), action_name="app.open-file",
                           action_target=GLib.Variant("s", out), timeout=8)
         # A toast cuts a long title off, and the file name and (in German) the
@@ -1402,7 +1463,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.remember_folder(os.path.dirname(out))
         self.toasts.add_toast(toast)
         self.last_toast = toast
-        self.new_file_name()
+        if not adding:
+            self.new_file_name()
         if ocr_error:
             self.show_error(_("{error}\n\nThe scan was saved without recognized text.").format(
                 error=ocr_error), heading=_("Text recognition failed"))
@@ -1426,12 +1488,24 @@ class MainWindow(Adw.ApplicationWindow):
             pass  # the scan is saved; the folder is only a convenience
 
     def _scan_failed(self, error):
+        adding, self.adding = self.adding, None
         self.cancel_event = None
         self.review = None
         self.review_bar.set_visible(False)
         self.set_busy(False)
         self.set_progress("")
-        if isinstance(error, slim_scan.ScanCancelled):
+        if adding is not None:  # the saved document stays as it was
+            for tile in self.tiles[adding:]:
+                self.page_grid.remove(tile)
+            del self.tiles[adding:]
+            self.update_page_count()
+            if isinstance(error, slim_scan.ScanCancelled):
+                name = os.path.basename(self.document["path"])
+                self.toasts.add_toast(Adw.Toast(use_markup=False, title=(
+                    _("Only blank pages; nothing was added to “{name}”") if "blank" in str(error)
+                    else _("Scan cancelled; “{name}” was not changed")).format(name=name)))
+                return
+        elif isinstance(error, slim_scan.ScanCancelled):
             self.clear_pages()
             self.toasts.add_toast(Adw.Toast(use_markup=False, title=_("Scan discarded")
                                             if "discarded" in str(error) or "removed" in str(error)
@@ -1457,6 +1531,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.folder_row.set_folder(cfg["outdir"] or scanform.documents_dir())
         self.new_file_name()
         if reconnect:
+            self.document = None  # Add Pages scans with the scanner it was saved from
+            self.update_add_pages()
             self.connect_scanner()
 
 
@@ -2052,6 +2128,7 @@ class ScanApp(Adw.Application):
         if self.gui_config["tray"]:
             self.set_tray(True)
         self.set_accels_for_action("win.scan", ["<Control>Return"])
+        self.set_accels_for_action("win.add-pages", ["<Control><Shift>Return"])
         self.set_accels_for_action("win.cancel", ["Escape"])
         self.set_accels_for_action("win.reconnect", ["F5"])
         self.set_accels_for_action("win.scan-settings", ["<Control>e"])

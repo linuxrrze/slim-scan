@@ -323,6 +323,13 @@ class FormTest(unittest.TestCase):
         self.assertEqual(scanform.saved_text(1, "a.pdf", complete=False),
                          "Scan stopped early; saved 1 page as “a.pdf”")
 
+    def test_added_text(self):
+        self.assertEqual(scanform.added_text(1, "a.pdf"), "Added 1 page to “a.pdf”")
+        self.assertEqual(scanform.added_text(2, "a.pdf", blank=1),
+                         "Added 2 pages to “a.pdf”, removed 1 blank page")
+        self.assertEqual(scanform.added_text(2, "a.pdf", complete=False),
+                         "Scan stopped early; added 2 pages to “a.pdf”")
+
     def test_remembered_outdir(self):
         with mock.patch.object(scanform, "documents_dir", return_value="/home/anna/Documents"):
             self.assertIsNone(scanform.remembered_outdir("/home/anna/Documents", ""))

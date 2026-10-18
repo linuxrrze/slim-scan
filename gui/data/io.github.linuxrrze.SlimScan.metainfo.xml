@@ -19,6 +19,7 @@
       <li>Only offers the settings your scanner supports</li>
       <li>Optional text recognition (OCR) with Tesseract, page by page while scanning, or OCRmyPDF</li>
       <li>Page preview; remove single pages before saving</li>
+      <li>Add more pages to a saved PDF, e.g. when a document does not fit into the feeder</li>
       <li>Optionally removes blank pages, e.g. empty backs</li>
       <li>Finds the paper size, straightens crooked pages and turns them upright</li>
       <li>Adjust a page's edges and angle by hand before saving</li>

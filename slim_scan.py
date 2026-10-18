@@ -910,7 +910,7 @@ SCAN_MORE = "more"  # select_pages(): scan more pages into the same document
 
 def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
                  on_page_image=None, select_pages=None, overwrite=False,
-                 on_more_failed=None):
+                 on_more_failed=None, document=None):
     """Find the scanner (unless given), check the settings, scan, write the PDF,
     and run text recognition if args.ocr is set.
 
@@ -946,11 +946,21 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
     `out` is the PDF path, or a function returning it: then it is called
     right before saving, so the name and folder can still change while
     scanning and during page selection.
+    document is a dict that keeps the saved document, so pages can be added
+    to it later. If it already holds one, the feeder's pages are added to it,
+    with its settings (not args), numbered on, and the PDF is written again
+    at its path (not out). Only the new pages are recognized with Tesseract;
+    OCRmyPDF recognizes the whole document again.
 
-    Returns (pages, complete, ocr_error): if OCR fails, the PDF is kept
-    without text and ocr_error says why. Raises ScanError (ScanCancelled when
-    stopped or discarded).
+    Returns (pages, complete, ocr_error): the pages saved by this call. If OCR
+    fails, the PDF is kept without text and ocr_error says why. Raises
+    ScanError (ScanCancelled when stopped or discarded, or when only blank
+    pages were added).
     """
+    before = document if document and document.get("path") else None
+    if before:
+        args, out, overwrite = before["args"], before["path"], True
+    offset = before["scanned"] if before else 0  # page numbers go on
     report = on_progress or (lambda event, pages: None)
     ocr = resolve_ocr(args.ocr_engine, args.ocr_lang) if args.ocr else None  # before scanning
     osd = resolve_osd(args, ocr)
@@ -975,6 +985,7 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
         infos = []
 
         def page_done(n, image):
+            n += offset
             report("page", n)
             infos.append(analyze_page(image, analysis, args.resolution, osd))
             if infos[-1]["blank"]:
@@ -988,6 +999,7 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
 
         pages, dpi, complete = run_scan(device, args, caps, on_page=page_done,
                                         should_stop=should_stop)
+        scanned = len(pages)
         if select_pages:
             keep = select_pages(pages, infos)
             while keep is SCAN_MORE:
@@ -1000,13 +1012,14 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
                 except ScanError as e:  # also stopped: keep what was scanned before
                     del infos[first:]
                     for n in early.pages() if early else ():
-                        if n > first:
+                        if n > offset + first:
                             early.cancel(n)
-                    report("more_failed", first)
+                    report("more_failed", offset + first)
                     if on_more_failed:
                         on_more_failed(e)
                 else:
                     pages = pages + more
+                    scanned = len(pages)
                     complete = complete and done
                 keep = select_pages(pages, infos)
             if keep is None:
@@ -1014,6 +1027,8 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
             if not keep:
                 raise ScanCancelled("all pages were removed; nothing was saved")
         elif any(info["blank"] for info in infos):
+            if all(info["blank"] for info in infos) and before:
+                raise ScanCancelled("only blank pages were scanned; nothing was added")
             if all(info["blank"] for info in infos):
                 report("all_blank", len(pages))  # rather than saving nothing
                 keep = range(len(pages))
@@ -1021,7 +1036,7 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
                 keep = [i for i, info in enumerate(infos) if not info["blank"]]
         else:
             keep = range(len(pages))
-        numbers = [i + 1 for i in keep]
+        numbers = [offset + i + 1 for i in keep]
         pages, infos = [pages[i] for i in keep], [infos[i] for i in keep]
         words = font = ocr_error = None
         if early:
@@ -1034,19 +1049,30 @@ def scan_to_file(args, out, device=None, on_progress=None, should_stop=None,
             words, ocr_error = early.results(numbers, on_count=lambda n: report("ocr_page", n))
             if ocr_error:
                 words = None
-            else:
-                font = tesseract_font(ocr[1])
+        added = len(pages)
+        if before:
+            if dpi != before["dpi"]:
+                raise ScanError(f"the scanner sent {dpi} dpi, the document has {before['dpi']}")
+            if words or before["words"]:
+                words = (before["words"] or [None] * len(before["pages"])) + \
+                    (words or [None] * added)
+            pages, infos = before["pages"] + pages, before["infos"] + infos
+        if words and early:
+            font = tesseract_font(ocr[1])
         if callable(out):
             out = out()
         report("saving", len(pages))
         write_pdf(out, pages, dpi, overwrite, pages=infos, words=words, font_file=font)
+        if document is not None:
+            document.update(path=out, args=args, dpi=dpi, pages=pages, infos=infos,
+                            words=words, scanned=offset + scanned)
         if ocr and not early:
             report("ocr", len(pages))
             try:
                 run_ocr(ocr[1], out, ocr[2])
             except ScanError as e:
                 ocr_error = str(e)
-        return len(pages), complete, ocr_error
+        return added, complete, ocr_error
     finally:
         if early:
             early.close()
