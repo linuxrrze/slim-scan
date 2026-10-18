@@ -64,6 +64,17 @@ def wait_for(check, timeout=20.0):
         time.sleep(0.01)
 
 
+def present(dialog, parent):
+    """Present a dialog and wait until it is open, so it can be closed again.
+
+    libadwaita 1.5 (Ubuntu 24.04) opens a dialog two frames after present()
+    and ignores close() until then (fixed in 1.7, 9bc2b372)."""
+    dialog.present(parent)
+    frames = []
+    dialog.add_tick_callback(lambda *_a: frames.append(1) or len(frames) < 3)
+    wait_for(lambda: len(frames) >= 3)
+
+
 @unittest.skipUnless(GTK_OK, "needs GTK 4.12+, libadwaita 1.5+ and a display")
 class GtkTest(unittest.TestCase):
     def setUp(self):
@@ -144,7 +155,7 @@ class GtkTest(unittest.TestCase):
             window = app.window
             assert window is not None
             prefs = slim_scan_gui.PreferencesDialog(window)
-            prefs.present(window)
+            present(prefs, window)
             page = slim_scan_gui.ScannerPage(prefs, "B")
             self.assertTrue(page.ocr_rows.auto.get_active())
             self.assertFalse(page.ocr_rows.lang_rows["deu"].get_sensitive())
@@ -199,7 +210,7 @@ class GtkTest(unittest.TestCase):
             self.assertEqual(len(os.listdir(out_dir)), 1)
 
             prefs = slim_scan_gui.PreferencesDialog(window)
-            prefs.present(window)
+            present(prefs, window)
             page_ = slim_scan_gui.ScannerPage(prefs, "Office")
             self.assertEqual(page_.backend_row.get_value(), "sane")
             self.assertTrue(page_.sane_row.get_visible())
@@ -235,7 +246,7 @@ class GtkTest(unittest.TestCase):
             window = app.window
             assert window is not None
             prefs = slim_scan_gui.PreferencesDialog(window)
-            prefs.present(window)
+            present(prefs, window)
             page = slim_scan_gui.ScannerPage(prefs, None)  # "Add Scanner"
             page.LOOKUP_DELAY_MS = 10
             page.host_row.set_text(fake.host)
@@ -264,17 +275,19 @@ class GtkTest(unittest.TestCase):
             app.activate()
             window = app.window
             assert window is not None
+            # Connected first: the page then offers only this scanner's modes.
+            wait_for(lambda: window.device is not None)
             prefs = slim_scan_gui.PreferencesDialog(window)
-            prefs.present(window)
+            present(prefs, window)
             prefs.open_scanner("Office")
             page = prefs.open_page
-            page.settings.mode.set_value("bw")
+            page.settings.mode.set_value("gray")
             page.name_row.set_text("Front desk")
             page.save_button.emit("clicked")
             wait_for(lambda: "Front desk" in app.scanners)
-            self.assertIsNone(prefs.get_parent(), "preferences closed")
+            wait_for(lambda: prefs.get_parent() is None)  # preferences closed
             self.assertEqual(list(app.scanners), ["Front desk"])
-            self.assertEqual(slim_scan.load_config(scanner="Front desk")["mode"], "bw")
+            self.assertEqual(slim_scan.load_config(scanner="Front desk")["mode"], "gray")
             window.close()
 
     def test_add_scanner_by_address(self):
@@ -287,7 +300,7 @@ class GtkTest(unittest.TestCase):
             window = app.window
             assert window is not None
             prefs = slim_scan_gui.PreferencesDialog(window)
-            prefs.present(window)
+            present(prefs, window)
             self.assertEqual(prefs.add_row.get_title(), "Add Scanner by Address…")
             self.assertIs(prefs.scanner_rows[-1], prefs.add_row, "last row of the list")
             prefs.add_row.emit("activated")
@@ -383,7 +396,7 @@ class GtkTest(unittest.TestCase):
         window = app.window
         assert window is not None
         prefs = slim_scan_gui.PreferencesDialog(window)
-        prefs.present(window)
+        present(prefs, window)
         self.assertEqual(list(prefs.profiles), ["Scanner"])
         self.assertEqual(prefs.profiles["Scanner"]["host"], "192.0.2.7")
         prefs._add_found(Gtk.Button(), {"manufacturer": "Brother", "model": "ADS-1700W",
@@ -411,7 +424,7 @@ class GtkTest(unittest.TestCase):
             self.assertIsNone(window.settings.mode.get_parent(), "rows only live in the dialog")
             for _round in range(2):  # the dialog can be opened again
                 dialog = slim_scan_gui.ScanSettingsDialog(window)
-                dialog.present(window)
+                present(dialog, window)
                 self.assertIsNotNone(window.settings.mode.get_parent())
                 window.settings.mode.set_value("bw")
                 window.settings.resolution.set_value(100)
@@ -421,7 +434,7 @@ class GtkTest(unittest.TestCase):
                              "Both sides · Black & white · 100 dpi · A4")
             self.assertEqual(app.config["mode"], "color", "not saved as default")
             dialog = slim_scan_gui.ScanSettingsDialog(window)
-            dialog.present(window)
+            present(dialog, window)
             dialog._save_defaults()
             self.assertEqual(slim_scan.load_config()["mode"], "bw")
             dialog.close()
@@ -892,7 +905,7 @@ class GtkTest(unittest.TestCase):
             self.assertIsNone(window.device)
 
             prefs = slim_scan_gui.PreferencesDialog(window)
-            prefs.present(window)
+            present(prefs, window)
             # The old [scan] host became the first scanner; point it at the fake.
             name = next(iter(prefs.profiles))
             self.assertTrue(prefs.migrated)

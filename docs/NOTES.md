@@ -69,6 +69,12 @@ One-time setup on GitHub:
 
 Leftover from the rename: `gui/install.sh --dist` still names its archive `scan-to-pdf-<version>.tar.gz`.
 
+## libadwaita 1.5: close() right after present() is ignored
+
+In libadwaita 1.5 (Ubuntu 24.04 has 1.5.0), `AdwDialog.close()` does nothing during the first two frames after `present()`. The dialog opens anyway and `closed` is not emitted. Upstream fixed this in 1.7 (commit 9bc2b372, "dialog: Handle close() before and right after present()"); the 1.5 branch has no backport.
+
+Users can't close a dialog that fast, so the app is not affected. The GTK tests did it on every dialog, so on 1.5 the preferences were never saved and 7 tests timed out. They now open dialogs with `present()` from `gui/tests/test_gui_gtk.py`, which waits three frames. To test against 1.5 elsewhere, put the `libadwaita-1-0` and `gir1.2-adw-1` packages from Ubuntu 24.04 in front of a newer GTK on `LD_LIBRARY_PATH` and `GI_TYPELIB_PATH`.
+
 ## Open ideas
 
 None of these are decided:
