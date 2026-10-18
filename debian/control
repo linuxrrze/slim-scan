@@ -1,0 +1,42 @@
+Source: slim-scan
+Section: graphics
+Priority: optional
+Maintainer: Marcel Ritter <marcel+it+github@linux-ng.de>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://github.com/linuxrrze/slim-scan
+Vcs-Browser: https://github.com/linuxrrze/slim-scan
+Vcs-Git: https://github.com/linuxrrze/slim-scan.git
+
+Package: slim-scan
+Architecture: all
+Depends: python3 (>= 3.9), ${misc:Depends}
+Recommends: tesseract-ocr, tesseract-ocr-osd
+Suggests: ocrmypdf, sane-utils, slim-scan-gui
+Description: scan all pages from a document feeder into one PDF
+ slim-scan scans every page in a scanner's document feeder into a single
+ PDF. It talks to network scanners over WSD (built in) or to any scanner
+ SANE supports, through scanimage.
+ .
+ It removes blank pages, finds the paper size, straightens and turns pages
+ upright, and can add a searchable text layer with Tesseract or OCRmyPDF.
+ It was developed against the Epson ES-580W.
+ .
+ This package contains the slim-scan command. The desktop app is in
+ slim-scan-gui.
+
+Package: slim-scan-gui
+Architecture: all
+Depends: slim-scan (= ${binary:Version}),
+         python3 (>= 3.9),
+         python3-gi,
+         gir1.2-gtk-4.0 (>= 4.12),
+         gir1.2-adw-1 (>= 1.5),
+         ${misc:Depends}
+Description: scan documents from a network scanner into PDF files (desktop app)
+ Slim Scan is a GTK 4 / libadwaita app built on slim-scan. It scans every
+ page in a scanner's document feeder into one PDF, shows the pages for
+ review and correction before saving, and can make the PDF searchable.
+ .
+ It can stay in the status bar and start at login.

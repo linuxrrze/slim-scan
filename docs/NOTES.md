@@ -50,6 +50,25 @@ Testing without root, on a machine with no SANE installed:
 - `SANE_DEBUG_EPSONDS=20` logs to `scanimage`'s stderr, which this tool captures. Tee it to a file explicitly, or the log is lost.
 - If `scanimage` stops in the middle of a batch, the scanner holds the sheet in the feeder, which looks like a paper jam.
 
+## Debian packages and the apt repository
+
+`.github/workflows/deb.yml` builds `slim-scan` and `slim-scan-gui` (both `Architecture: all`) from `debian/` on every push and pull request. It runs the tests, lintian, and an install and remove test on Debian 13, Ubuntu 24.04 and Ubuntu 26.04. The .debs are kept as the `debs` artifact.
+
+Release: bump `VERSION` in `gui/scanform.py` and add the `<release>` to the metainfo, commit, then push the tag `vX.Y.Z`. The build fails if the tag, `VERSION` and the newest metainfo release differ. A tag also creates the GitHub Release with the .debs. Then `debian/publish-apt.sh` adds them to the apt repository on the `gh-pages` branch, keeps the last 5 versions of each package, and signs `Release`.
+
+- `debian/changelog` isn't in git. `debian/gen-changelog.sh` writes it from `VERSION`, with the commit date, so the version lives in one place. Build locally with `debian/gen-changelog.sh && dpkg-buildpackage -us -uc -b`.
+- The repository has one suite, `stable`, for all distributions. The dependencies (GTK 4.12+, libadwaita 1.5+) decide where it installs. On Debian 12, apt refuses `slim-scan-gui` because its GTK 4.8 is too old; `slim-scan` works there.
+- Packages are listed only in `binary-all`. The `amd64`, `arm64`, `armhf` and `i386` lists are empty, so apt on those systems doesn't warn about a missing architecture.
+- Lintian warns `no-manual-page` for both commands. There are no man pages yet.
+
+One-time setup on GitHub:
+
+1. Create a signing key, without a passphrase or with one stored as the secret `APT_SIGNING_PASSPHRASE`: `gpg --quick-gen-key "Slim Scan apt repository <…>" ed25519 sign 5y`. Store `gpg --armor --export-secret-keys <fingerprint>` as the repository secret `APT_SIGNING_KEY`. Keep a backup offline: with a new key, every user has to download the keyring again.
+2. After the first tag has created the `gh-pages` branch: Settings → Pages → Deploy from a branch → `gh-pages`, `/ (root)`.
+3. The key expires. Before that, extend it (`gpg --quick-set-expire`), update the secret and publish again. apt checks against the keyring file users downloaded, so they have to run the first `curl` command again; otherwise `apt update` fails once the old date has passed.
+
+Leftover from the rename: `gui/install.sh --dist` still names its archive `scan-to-pdf-<version>.tar.gz`.
+
 ## Open ideas
 
 None of these are decided:

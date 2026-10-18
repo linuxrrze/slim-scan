@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+# Nothing to build; CI runs the tests on the source tree.
+override_dh_auto_build override_dh_auto_test:
+
+# Debian policy wants scripts to name their interpreter directly.
+override_dh_install:
+	dh_install
+	sed -i '1s|^#!/usr/bin/env python3$$|#!/usr/bin/python3|' \
+		debian/slim-scan/usr/share/slim-scan/slim_scan.py \
+		debian/slim-scan-gui/usr/share/slim-scan/slim_scan_gui.py
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 755 debian/slim-scan/usr/share/slim-scan/slim_scan.py \
+		debian/slim-scan-gui/usr/share/slim-scan/slim_scan_gui.py

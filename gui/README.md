@@ -10,6 +10,21 @@ It uses GTK 4 and libadwaita, so it looks native on GNOME and Ubuntu Desktop. On
 
 ## Install
 
+**On Debian 13+ and Ubuntu 24.04+**, install from the apt repository. You then get updates with your other packages:
+
+```sh
+sudo curl -fsSLo /usr/share/keyrings/slim-scan-archive-keyring.gpg \
+  https://linuxrrze.github.io/slim-scan/slim-scan-archive-keyring.gpg
+sudo curl -fsSLo /etc/apt/sources.list.d/slim-scan.sources \
+  https://linuxrrze.github.io/slim-scan/slim-scan.sources
+sudo apt update
+sudo apt install slim-scan-gui   # the app and the command; or just slim-scan for the command
+```
+
+This installs the dependencies too, including Tesseract for text recognition (`tesseract-ocr`, `tesseract-ocr-osd`, as recommended packages). Add `sane-utils` for SANE scanners. To remove it: `sudo apt remove slim-scan-gui slim-scan`. Your settings are kept. Each [release](https://github.com/linuxrrze/slim-scan/releases) also has the two .deb files, for `sudo apt install ./slim-scan_*.deb ./slim-scan-gui_*.deb`.
+
+**Elsewhere, or without packages**, use the installer:
+
 **1. Dependencies** (Python 3.9+, GTK 4.12+, libadwaita 1.5+ and their Python bindings; preinstalled on most GNOME and Ubuntu desktops):
 
 | Distribution | Command |

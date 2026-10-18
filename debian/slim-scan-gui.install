@@ -1,0 +1,7 @@
+gui/slim_scan_gui.py gui/scanform.py gui/tray.py gui/i18n.py usr/share/slim-scan
+gui/po/*.po usr/share/slim-scan/po
+gui/data/icons/*.svg usr/share/slim-scan/data/icons
+gui/data/io.github.linuxrrze.SlimScan.desktop usr/share/applications
+gui/data/io.github.linuxrrze.SlimScan.svg usr/share/icons/hicolor/scalable/apps
+gui/data/io.github.linuxrrze.SlimScan-symbolic.svg usr/share/icons/hicolor/symbolic/apps
+gui/data/io.github.linuxrrze.SlimScan.metainfo.xml usr/share/metainfo

@@ -596,6 +596,18 @@ class DesktopFilesTest(unittest.TestCase):
         for name in ("slim_scan_gui.py", "scanform.py", "tray.py", "-symbolic.svg"):
             self.assertGreaterEqual(installer.count(name), 2, name)  # install and --dist
 
+    def test_deb_installs_all_modules(self):
+        debian = os.path.join(os.path.dirname(GUI), "debian")
+        with open(os.path.join(debian, "slim-scan-gui.install")) as f:
+            gui_files = f.read()
+        modules = sorted(n for n in os.listdir(GUI) if n.endswith(".py") and n != "slim_scan.py")
+        for name in modules + ["gui/po/*.po", "gui/data/icons/*.svg",
+                               f"{scanform.APP_ID}.desktop", f"{scanform.APP_ID}.svg",
+                               f"{scanform.APP_ID}-symbolic.svg", f"{scanform.APP_ID}.metainfo.xml"]:
+            self.assertIn(name, gui_files)
+        with open(os.path.join(debian, "slim-scan.install")) as f:
+            self.assertIn("slim_scan.py", f.read())
+
 
 if __name__ == "__main__":
     unittest.main()

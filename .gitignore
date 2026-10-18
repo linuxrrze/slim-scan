@@ -9,3 +9,13 @@ scan-to-pdf-*.tar.gz
 
 # Scans made while testing
 scan_*.pdf
+
+# Debian package build (debian/changelog is written by debian/gen-changelog.sh)
+debian/changelog
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
+debian/slim-scan/
+debian/slim-scan-gui/

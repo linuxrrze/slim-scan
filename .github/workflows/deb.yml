@@ -1,0 +1,163 @@
+# Build the .deb packages on every push and pull request. A version tag (v1.2.3)
+# also publishes them: as a GitHub Release and in the apt repository on
+# GitHub Pages (https://linuxrrze.github.io/slim-scan/).
+name: Debian packages
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK, libadwaita and Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 dbus xvfb xauth
+      - name: Core tests
+        run: python3 -m unittest discover -s tests -v
+      - name: App tests
+        run: xvfb-run -a dbus-run-session -- python3 -m unittest discover -s gui/tests -v
+
+  build:
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential debhelper lintian git ca-certificates
+      - uses: actions/checkout@v4
+      - name: Check the version
+        run: |
+          VERSION=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' gui/scanform.py)
+          RELEASE=$(sed -n 's/.*<release version="\([^"]*\)".*/\1/p' \
+            gui/data/io.github.linuxrrze.SlimScan.metainfo.xml | head -n 1)
+          echo "VERSION=$VERSION, newest metainfo release $RELEASE"
+          [ "$VERSION" = "$RELEASE" ] || { echo "::error::VERSION and metainfo differ"; exit 1; }
+          case $GITHUB_REF in
+            refs/tags/*)
+              [ "$GITHUB_REF_NAME" = "v$VERSION" ] ||
+                { echo "::error::tag $GITHUB_REF_NAME does not match VERSION $VERSION"; exit 1; } ;;
+          esac
+      - name: Build
+        run: |
+          git config --global --add safe.directory "$PWD"
+          debian/gen-changelog.sh
+          dpkg-buildpackage -us -uc -b
+          mkdir dist && mv ../*.deb dist/
+          ls -l dist
+          for deb in dist/*.deb; do dpkg-deb --info "$deb"; dpkg-deb --contents "$deb"; done
+      - name: Lintian
+        run: lintian --fail-on error --info --display-info dist/*.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs
+          path: dist/*.deb
+          if-no-files-found: error
+
+  install-test:
+    needs: build
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["debian:trixie", "ubuntu:24.04", "ubuntu:26.04"]
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+      - name: Install
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb xauth \
+            ./slim-scan_*.deb ./slim-scan-gui_*.deb
+      - name: Run
+        run: |
+          slim-scan --help
+          xvfb-run -a slim-scan-gui --help
+          test -f /usr/share/slim-scan/po/de.po
+          test -f /usr/share/slim-scan/data/icons/slim-scan-ocr-symbolic.svg
+          test -f /usr/share/applications/io.github.linuxrrze.SlimScan.desktop
+          test -f /usr/share/icons/hicolor/scalable/apps/io.github.linuxrrze.SlimScan.svg
+          test -f /usr/share/metainfo/io.github.linuxrrze.SlimScan.metainfo.xml
+      - name: Remove
+        run: |
+          apt-get purge -y slim-scan slim-scan-gui
+          ! test -e /usr/share/slim-scan
+          ! test -e /usr/bin/slim-scan
+          ! test -e /usr/bin/slim-scan-gui
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, build, install-test]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --title "Slim Scan ${GITHUB_REF_NAME#v}" --generate-notes *.deb
+
+  publish-apt:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency: gh-pages
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+          path: dist
+      - name: Install apt-ftparchive
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends apt-utils
+      - name: Import the signing key
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          [ -n "$APT_SIGNING_KEY" ] || { echo "::error::secret APT_SIGNING_KEY is not set"; exit 1; }
+          printf '%s\n' "$APT_SIGNING_KEY" | gpg --batch --import
+      - name: Check out gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init -q site
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898073+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth 1 origin gh-pages; then
+            git checkout -q -b gh-pages FETCH_HEAD
+          else
+            git checkout -q --orphan gh-pages
+          fi
+      - name: Update the repository
+        env:
+          APT_SIGNING_PASSPHRASE: ${{ secrets.APT_SIGNING_PASSPHRASE }}
+        run: debian/publish-apt.sh site dist/*.deb
+      - name: Push gh-pages
+        run: |
+          cd site
+          git add -A
+          git commit -q -m "Publish $GITHUB_REF_NAME"
+          git push -q origin gh-pages

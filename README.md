@@ -17,6 +17,8 @@ With WSD, only standard features are used. Everything model-dependent (resolutio
 
 ## Setup
 
+On Debian 13+ and Ubuntu 24.04+, `sudo apt install slim-scan` installs the command from the project's apt repository, after adding it as described in [gui/README.md](gui/README.md#install). The `slim-scan` package needs only Python 3; the app is in `slim-scan-gui`. Then use `slim-scan` instead of `./slim_scan.py` in the examples below. To run it from the repository instead:
+
 ```sh
 chmod +x slim_scan.py
 export SLIM_SCAN_HOST=192.168.2.13     # or pass --host each time
