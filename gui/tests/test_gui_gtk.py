@@ -20,6 +20,12 @@ sys.path[:0] = [GUI, ROOT, os.path.join(ROOT, "tests")]
 os.environ["LANGUAGE"] = "C"  # English texts, whatever the desktop language
 CONFIG_DIR = tempfile.mkdtemp(prefix="slim-scan-gtk-test-")
 os.environ["SLIM_SCAN_CONFIG"] = os.path.join(CONFIG_DIR, "config.ini")
+# No session bus: each test starts a new app with the same ID, and a bus
+# refuses the second while the first is alive ("An object is already
+# exported"). It would also reach a Slim Scan running on the desktop. Without
+# a bus, GLib runs each app on its own. Set before GTK can connect to one.
+NO_BUS = "unix:path=" + os.path.join(CONFIG_DIR, "no-bus")
+os.environ["DBUS_SESSION_BUS_ADDRESS"] = NO_BUS
 
 try:
     import gi
@@ -65,6 +71,10 @@ class GtkTest(unittest.TestCase):
         # test must not leak into the next.
         if os.path.exists(os.environ["SLIM_SCAN_CONFIG"]):
             os.remove(os.environ["SLIM_SCAN_CONFIG"])
+        # Again per test: the tray tests' private bus changes the variable.
+        patcher = mock.patch.dict(os.environ, {"DBUS_SESSION_BUS_ADDRESS": NO_BUS})
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_scan_settings_rows(self):
         Adw.init()

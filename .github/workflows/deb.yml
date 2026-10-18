@@ -25,8 +25,8 @@ jobs:
             python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 dbus-daemon xvfb xauth
       - name: Core tests
         run: python3 -m unittest discover -s tests -v
-      # No session bus: each GTK test registers a new app under the same ID,
-      # which a bus refuses. The tray tests start their own bus (needs dbus-daemon).
+      # The GTK tests turn the session bus off themselves; the tray tests start
+      # their own bus (needs dbus-daemon).
       - name: App tests
         run: xvfb-run -a python3 -m unittest discover -s gui/tests -v
 
